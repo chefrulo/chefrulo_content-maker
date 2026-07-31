@@ -60,7 +60,7 @@ if (existsSync("data") && statSync("data").isDirectory()) {
 
 const requiredEnvByPhase: Record<string, string[]> = {
   "Phase 2 (Instagram MCP)": ["IG_ACCESS_TOKEN", "IG_BUSINESS_ACCOUNT_ID"],
-  "Phase 3 (competitor scraping)": ["APIFY_API_TOKEN"],
+  "Phase 3 (inspiration account scraping)": ["APIFY_API_TOKEN"],
   "Phase 6 (publish)": [
     "VPS_HOST",
     "VPS_USER",
