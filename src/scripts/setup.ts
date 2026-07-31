@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { findClaudePath } from "../lib/claude-path.js";
+import { DEFAULT_BRAND } from "../lib/brand.js";
 
 const ROOT = process.cwd();
 
@@ -12,6 +13,18 @@ function ensureDataDir() {
   const dataDir = path.join(ROOT, "data");
   fs.mkdirSync(dataDir, { recursive: true });
   log(`  Created ${path.relative(ROOT, dataDir)}/`);
+}
+
+function ensureBrandSeed() {
+  const brandPath = path.join(ROOT, "data", "brand.json");
+  if (fs.existsSync(brandPath)) return;
+  const now = new Date().toISOString();
+  fs.writeFileSync(
+    brandPath,
+    JSON.stringify({ ...DEFAULT_BRAND, createdAt: now, updatedAt: now }, null, 2),
+    "utf-8"
+  );
+  log(`  Seeded ${path.relative(ROOT, brandPath)}`);
 }
 
 function ensureEnvLocal(claudePath: string | null) {
@@ -41,6 +54,7 @@ function main() {
 
   log("Creating data directory...");
   ensureDataDir();
+  ensureBrandSeed();
   log("");
 
   log("Looking for Claude CLI...");
