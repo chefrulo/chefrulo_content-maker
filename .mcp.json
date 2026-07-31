@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "instagram": {
+      "command": "npx",
+      "args": ["-y", "@mcpware/instagram-mcp"],
+      "env": {
+        "INSTAGRAM_ACCESS_TOKEN": "${IG_ACCESS_TOKEN}",
+        "INSTAGRAM_ACCOUNT_ID": "${IG_BUSINESS_ACCOUNT_ID}"
+      }
+    }
+  }
+}

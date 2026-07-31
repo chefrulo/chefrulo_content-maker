@@ -1,7 +1,10 @@
 import { existsSync, statSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { platform } from "node:os";
+import { config } from "dotenv";
 import { findClaudePath } from "../lib/claude-path.js";
+
+config({ path: ".env.local" });
 
 const CHECK = "✓";
 const FAIL = "✗";
