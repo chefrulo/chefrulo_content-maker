@@ -1,0 +1,26 @@
+{
+  "name": "chefrulo_content-maker",
+  "version": "0.1.0",
+  "description": "Local-first Instagram Reels pipeline for Chef Rulo & Family — research, brief, video generation, and publishing orchestrated via Claude Code.",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "tsx src/scripts/setup.ts",
+    "doctor": "tsx src/scripts/doctor.ts"
+  },
+  "dependencies": {
+    "async-mutex": "^0.5.0",
+    "cross-spawn": "^7.0.6",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/node": "^20",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}
