@@ -1,39 +1,13 @@
-import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
-import SftpClient from "ssh2-sftp-client";
+import { exposeFileTemporarily } from "./tunnel.js";
 
 export interface PublishConfig {
   igBusinessAccountId: string;
   igAccessToken: string;
-  vpsHost: string;
-  vpsUser: string;
-  vpsPrivateKeyPath: string;
-  vpsRemoteDir: string;
-  vpsPublicBaseUrl: string;
 }
 
 export interface PublishResult {
   mediaId: string;
   videoUrl: string;
-}
-
-async function uploadVideoToVps(localPath: string, config: PublishConfig): Promise<string> {
-  const sftp = new SftpClient();
-  const fileName = `${Date.now()}-${basename(localPath)}`;
-  const remotePath = `${config.vpsRemoteDir}/${fileName}`;
-
-  try {
-    await sftp.connect({
-      host: config.vpsHost,
-      username: config.vpsUser,
-      privateKey: await readFile(config.vpsPrivateKeyPath),
-    });
-    await sftp.put(localPath, remotePath);
-  } finally {
-    await sftp.end();
-  }
-
-  return `${config.vpsPublicBaseUrl.replace(/\/$/, "")}/${fileName}`;
 }
 
 async function graphRequest(
@@ -127,10 +101,13 @@ export async function publishReel(
   caption: string,
   config: PublishConfig
 ): Promise<PublishResult> {
-  const videoUrl = await uploadVideoToVps(localVideoPath, config);
-  const containerId = await createReelContainer(videoUrl, caption, config);
-  await waitForContainerReady(containerId, config);
-  const mediaId = await publishContainer(containerId, config);
-
-  return { mediaId, videoUrl };
+  const tunnel = await exposeFileTemporarily(localVideoPath);
+  try {
+    const containerId = await createReelContainer(tunnel.publicUrl, caption, config);
+    await waitForContainerReady(containerId, config);
+    const mediaId = await publishContainer(containerId, config);
+    return { mediaId, videoUrl: tunnel.publicUrl };
+  } finally {
+    await tunnel.close();
+  }
 }

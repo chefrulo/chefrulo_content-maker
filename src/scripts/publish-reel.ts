@@ -8,15 +8,7 @@ import { readData, writeData } from "../lib/data.js";
 import { publishReel, type PublishConfig } from "../lib/publish-reel.js";
 import type { ReelBrief } from "../types/brief.js";
 
-const REQUIRED_ENV = [
-  "IG_BUSINESS_ACCOUNT_ID",
-  "IG_ACCESS_TOKEN",
-  "VPS_HOST",
-  "VPS_USER",
-  "VPS_PRIVATE_KEY_PATH",
-  "VPS_REMOTE_DIR",
-  "VPS_PUBLIC_BASE_URL",
-] as const;
+const REQUIRED_ENV = ["IG_BUSINESS_ACCOUNT_ID", "IG_ACCESS_TOKEN"] as const;
 
 function loadPublishConfig(): PublishConfig {
   const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
@@ -26,11 +18,6 @@ function loadPublishConfig(): PublishConfig {
   return {
     igBusinessAccountId: process.env.IG_BUSINESS_ACCOUNT_ID!,
     igAccessToken: process.env.IG_ACCESS_TOKEN!,
-    vpsHost: process.env.VPS_HOST!,
-    vpsUser: process.env.VPS_USER!,
-    vpsPrivateKeyPath: process.env.VPS_PRIVATE_KEY_PATH!,
-    vpsRemoteDir: process.env.VPS_REMOTE_DIR!,
-    vpsPublicBaseUrl: process.env.VPS_PUBLIC_BASE_URL!,
   };
 }
 
@@ -98,7 +85,7 @@ async function main() {
     }
   }
 
-  console.log("Subiendo al VPS y publicando...");
+  console.log("Abriendo túnel local y publicando...");
   const result = await publishReel(videoPath, caption, publishConfig);
 
   const updated: ReelBrief = {

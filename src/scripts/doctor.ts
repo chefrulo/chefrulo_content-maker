@@ -61,13 +61,7 @@ if (existsSync("data") && statSync("data").isDirectory()) {
 const requiredEnvByPhase: Record<string, string[]> = {
   "Phase 2 (Instagram MCP)": ["IG_ACCESS_TOKEN", "IG_BUSINESS_ACCOUNT_ID"],
   "Phase 3 (inspiration account scraping)": ["APIFY_API_TOKEN"],
-  "Phase 6 (publish)": [
-    "VPS_HOST",
-    "VPS_USER",
-    "VPS_PRIVATE_KEY_PATH",
-    "VPS_REMOTE_DIR",
-    "VPS_PUBLIC_BASE_URL",
-  ],
+  "Phase 5 (voiceover)": ["OPENAI_API_KEY"],
 };
 
 for (const [phase, vars] of Object.entries(requiredEnvByPhase)) {
@@ -77,6 +71,13 @@ for (const [phase, vars] of Object.entries(requiredEnvByPhase)) {
   } else {
     add(INFO, phase, `not yet configured (${missing.join(", ")})`);
   }
+}
+
+const cloudflared = tryExec("command -v cloudflared");
+if (cloudflared) {
+  add(CHECK, "Phase 6 (publish)", `cloudflared at ${cloudflared}`);
+} else {
+  add(INFO, "Phase 6 (publish)", "cloudflared not found — install it to publish (no VPS needed)");
 }
 
 const labelWidth = Math.max(...checks.map((c) => c.label.length));

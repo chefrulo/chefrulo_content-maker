@@ -42,7 +42,7 @@ Generates per-beat voiceover (OpenAI TTS), builds an EDL mapping beats to real f
 npm run publish:reel <briefId>
 ```
 
-Uploads the video to your VPS, creates the Reels container via the Instagram Graph API, and publishes. Requires typing `publicar` to confirm — this hits your real, public Instagram account.
+No VPS involved: the Graph API needs a public HTTPS URL to fetch the video from, so this spins up a local HTTP server plus a [cloudflared](https://github.com/cloudflare/cloudflared) quick tunnel (no account/signup needed) just long enough for Meta's servers to download it, then tears both down. Requires `cloudflared` on PATH (`npm run doctor` checks for it). Requires typing `publicar` to confirm — this hits your real, public Instagram account.
 
 ## Individual steps
 
