@@ -5,6 +5,7 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getBrand } from "../lib/brand.js";
+import { loadBrandBrainFoundation } from "../lib/brand-brain.js";
 import { readDataSafe, writeData } from "../lib/data.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
 import type { InspirationScrapeResult, InspirationReel } from "../types/inspiration.js";
@@ -43,7 +44,8 @@ async function loadTopInspirationReels(): Promise<
 
 function buildPrompt(
   brand: Awaited<ReturnType<typeof getBrand>>,
-  reels: Array<InspirationReel & { handle: string }>
+  reels: Array<InspirationReel & { handle: string }>,
+  brandBrain: string | null
 ): string {
   const pillarsBlock = brand.pillars
     .map(
@@ -59,9 +61,19 @@ function buildPrompt(
     )
     .join("\n");
 
+  const brandBrainBlock = brandBrain
+    ? `## Editorial foundation — non-negotiable, overrides everything below if they ever conflict
+The following is Chef Rulo's brand brain: positioning, editorial manifesto, writing style and guardrails. Every beat's voiceover and onScreenText must follow this — British English, the specific voice described, and especially the guardrails (never claim cultural superiority in either direction, never treat one household/region as representative of all Argentina, never use "authentic" as an unsupported verdict, never imitate accents or use stereotypes, never let a hook shame the audience or conceal the subject).
+
+${brandBrain}
+
+---
+`
+    : "";
+
   return `You are a senior Instagram Reels content strategist for the brand "${brand.name}".
 
-## Brand
+${brandBrainBlock}## Brand
 - Positioning: ${brand.positioning}
 - Tagline: ${brand.tagline}
 - Location: ${brand.location}
@@ -123,6 +135,7 @@ function parseBriefsJson(raw: string): Array<Omit<ReelBrief, "id" | "createdAt" 
 async function main() {
   const brand = await getBrand();
   const reels = await loadTopInspirationReels();
+  const brandBrain = await loadBrandBrainFoundation();
 
   if (reels.length === 0) {
     console.log(
@@ -131,9 +144,13 @@ async function main() {
     return;
   }
 
-  console.log(`Generando ${BRIEFS_PER_RUN} briefs usando ${reels.length} reels de referencia...`);
+  console.log(
+    `Generando ${BRIEFS_PER_RUN} briefs usando ${reels.length} reels de referencia` +
+      (brandBrain ? " y el brand brain" : " (sin brand brain — seteá BRAND_BRAIN_PATH en .env.local)") +
+      "..."
+  );
 
-  const prompt = buildPrompt(brand, reels);
+  const prompt = buildPrompt(brand, reels, brandBrain);
   const { result } = await runClaudeAgent({
     prompt,
     maxBudgetUsd: 0.5,

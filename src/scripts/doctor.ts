@@ -79,6 +79,12 @@ if (cloudflared) {
   add(INFO, "Phase 6 (publish)", "cloudflared not found — install it to publish (no VPS needed)");
 }
 
+if (process.env.BRAND_BRAIN_PATH && existsSync(`${process.env.BRAND_BRAIN_PATH}/knowledge/00-foundation`)) {
+  add(CHECK, "Brand Brain", process.env.BRAND_BRAIN_PATH);
+} else {
+  add(INFO, "Brand Brain", "not configured — briefs will skip editorial guardrails (set BRAND_BRAIN_PATH)");
+}
+
 const labelWidth = Math.max(...checks.map((c) => c.label.length));
 console.log("");
 for (const { symbol, label, detail } of checks) {
