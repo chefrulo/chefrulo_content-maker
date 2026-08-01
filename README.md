@@ -51,6 +51,14 @@ npm run publish:reel <briefId>
 
 No VPS involved: the Graph API needs a public HTTPS URL to fetch the video from, so this spins up a local HTTP server plus a [cloudflared](https://github.com/cloudflare/cloudflared) quick tunnel (no account/signup needed) just long enough for Meta's servers to download it, then tears both down. Requires `cloudflared` on PATH (`npm run doctor` checks for it). Requires typing `publicar` to confirm — this hits your real, public Instagram account.
 
+## Web UI
+
+```bash
+npm run dev
+```
+
+Opens a dashboard at `localhost:3000` — same underlying pipeline, no CLI needed. Briefs grouped by status, one-click research with live progress, brief detail page with approve/reject, produce (streamed), video preview, and publish (still gated: you have to type `publicar` in an input before the publish button enables). Reuses the UI components and Tailwind theme from [Open Carrusel](https://github.com/Hainrixz/open-carrusel).
+
 ## Individual steps
 
 Each pipeline stage is also its own command, in case you want to rerun just one:
