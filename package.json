@@ -18,7 +18,8 @@
     "briefs:approve": "tsx src/scripts/approve-brief.ts",
     "generate:voiceover": "tsx src/scripts/generate-voiceover.ts",
     "generate:edl": "tsx src/scripts/generate-edl.ts",
-    "render:reel": "tsx src/scripts/render-reel.ts"
+    "render:reel": "tsx src/scripts/render-reel.ts",
+    "publish:reel": "tsx src/scripts/publish-reel.ts"
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.503",
@@ -30,13 +31,15 @@
     "music-metadata": "^11.14.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "remotion": "^4.0.503"
+    "remotion": "^4.0.503",
+    "ssh2-sftp-client": "^12.1.1"
   },
   "devDependencies": {
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "^20",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@types/ssh2-sftp-client": "^9.0.6",
     "tsx": "^4.19.2",
     "typescript": "^5"
   }

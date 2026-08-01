@@ -15,5 +15,8 @@ export interface ReelBrief {
   cta: string;
   estimatedDurationSeconds: number;
   inspiredBy: string[];
-  status: "pending_review" | "approved" | "rejected";
+  status: "pending_review" | "approved" | "rejected" | "published";
+  publishedAt?: string;
+  publishedMediaId?: string;
+  publishedVideoUrl?: string;
 }
