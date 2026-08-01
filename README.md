@@ -2,6 +2,13 @@
 
 Local-first Instagram Reels pipeline for Chef Rulo & Family: research → brief → video → publish, orchestrated with Claude Code. Same philosophy as [Open Carrusel](https://github.com/Hainrixz/open-carrusel) — everything runs on your machine, Claude CLI as a subprocess agent, no data leaves except to the APIs each step actually needs.
 
+## Requirements
+
+- Node 20+
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+- [`cloudflared`](https://github.com/cloudflare/cloudflared) on PATH — only needed for Phase 6 (publish)
+- Accounts/tokens: Meta (Instagram Graph API), Apify, OpenAI — `npm run doctor` tells you what's missing
+
 ## Setup
 
 ```bash
@@ -77,3 +84,15 @@ data/edl/<id>.json               beat → footage/text-card mapping
 data/exports/<id>.mp4            final rendered video
 footage/<id>/                    your real clips for a brief (you provide these)
 ```
+
+## Status
+
+All 7 phases from the original plan are built and were verified with real data/credentials, except the actual Graph API publish call — that step is gated behind typing `publicar` and hasn't been run for a real post yet.
+
+What's left before this is fully in day-to-day use:
+
+- **Real footage** — no clips exist yet, so every brief currently renders with text-card fallbacks. Drop clips into `footage/<briefId>/` before `generate:edl` to use real video; sanity-check the AI-suggested trim points in `data/edl/<id>.json` before rendering, since Claude picks them from filenames/durations, not by watching the footage.
+- **First real publish** — run `npm run publish:reel <briefId>` yourself when a video is ready; nothing publishes automatically.
+- **No background music yet** — no royalty-free tracks are wired in.
+- **No caption/hashtag generation** — publish captions are just `hook + cta`; can be extended if you want fuller Instagram captions.
+- **No feedback loop** — Phase 4 briefs are grounded in inspiration-account performance (Phase 3), not in Chef Rulo's own post history/insights (Phase 2), even though the MCP tools for that are already wired up.
