@@ -19,7 +19,9 @@
     "generate:voiceover": "tsx src/scripts/generate-voiceover.ts",
     "generate:edl": "tsx src/scripts/generate-edl.ts",
     "render:reel": "tsx src/scripts/render-reel.ts",
-    "publish:reel": "tsx src/scripts/publish-reel.ts"
+    "publish:reel": "tsx src/scripts/publish-reel.ts",
+    "pipeline:research": "tsx src/scripts/pipeline-research.ts",
+    "pipeline:produce": "tsx src/scripts/pipeline-produce.ts"
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.503",
