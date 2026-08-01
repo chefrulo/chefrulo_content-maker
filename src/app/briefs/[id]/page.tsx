@@ -48,10 +48,14 @@ export default function BriefDetailPage({ params }: { params: Promise<{ id: stri
       </Link>
 
       <header>
-        <Badge variant="outline">{brief.pillar}</Badge>
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant="outline">{brief.brandPillar}</Badge>
+          <Badge variant="secondary">{brief.editorialTerritory}</Badge>
+        </div>
         <h1 className="text-2xl font-bold mt-2 leading-snug">{brief.hook}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{brief.topic}</p>
         <p className="text-sm text-muted-foreground mt-1">
-          {brief.format} · ~{brief.estimatedDurationSeconds}s · CTA: {brief.cta}
+          {brief.contentPattern} · ~{brief.estimatedDurationSeconds}s · CTA: {brief.cta}
         </p>
         {brief.inspiredBy.length > 0 && (
           <p className="text-xs text-muted-foreground mt-1">

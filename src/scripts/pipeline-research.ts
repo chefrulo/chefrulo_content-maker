@@ -29,7 +29,7 @@ async function main() {
   console.log(`\n=== CHECKPOINT: revisión manual ===`);
   console.log(`${pending.length} briefs esperando aprobación:\n`);
   for (const brief of pending) {
-    console.log(`  [${brief.pillar}] ${brief.id}`);
+    console.log(`  [${brief.brandPillar} / ${brief.editorialTerritory}] ${brief.id}`);
     console.log(`    "${brief.hook}"`);
   }
   console.log(`\nRevisá los JSON en data/briefs/, y para cada uno que quieras producir:`);

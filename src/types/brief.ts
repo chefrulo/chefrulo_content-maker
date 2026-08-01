@@ -8,8 +8,10 @@ export interface ReelBeat {
 export interface ReelBrief {
   id: string;
   createdAt: string;
-  pillar: string;
-  format: string;
+  brandPillar: string;
+  editorialTerritory: string;
+  topic: string;
+  contentPattern: string;
   hook: string;
   beats: ReelBeat[];
   cta: string;

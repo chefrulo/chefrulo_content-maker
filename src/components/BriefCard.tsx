@@ -23,13 +23,15 @@ export function BriefCard({ brief }: { brief: ReelBrief }) {
       className="cr-enter block rounded-xl border border-border bg-surface p-4 hover:border-accent/50 transition-colors"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <Badge variant="outline">{brief.pillar}</Badge>
+        <Badge variant="outline">{brief.brandPillar}</Badge>
         <Badge variant={statusVariant[brief.status] ?? "secondary"}>
           {statusLabel[brief.status] ?? brief.status}
         </Badge>
       </div>
       <p className="text-sm font-semibold leading-snug">{brief.hook}</p>
-      <p className="text-xs text-muted-foreground mt-1">{brief.format}</p>
+      <p className="text-xs text-muted-foreground mt-1">
+        {brief.editorialTerritory} · {brief.contentPattern}
+      </p>
     </Link>
   );
 }

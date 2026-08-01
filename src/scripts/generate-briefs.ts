@@ -54,6 +54,8 @@ function buildPrompt(
     )
     .join("\n");
 
+  const pillarNames = brand.pillars.map((p) => p.name);
+
   const reelsBlock = reels
     .map(
       (r) =>
@@ -81,8 +83,15 @@ ${brandBrainBlock}## Brand
 - Target audience: ${brand.targetAudience}
 - Offerings: ${brand.offerings.join(", ")}
 
-## Content pillars
+## Brand pillars (commercial — which facet of the brand this piece develops; for planning and business reporting)
 ${pillarsBlock}
+
+## Editorial territories vs brand pillars
+A brief needs BOTH, and they are not the same axis:
+- "brandPillar" is one of the brand pillar names listed above.
+- "editorialTerritory" is the concrete subject-matter territory the piece is actually about (e.g. "Argentine Cooking Techniques", "Family Memory", "Argentine Table Culture") — pick or coin one that fits the topic, informed by the brand brain's content taxonomy if included below. The same brand pillar can pair with several different territories; don't force a rigid one-to-one mapping.
+- "topic" is the specific, concrete idea for this piece (a sentence, not a category).
+- "contentPattern" is the structural pattern used (e.g. "Cultural Doorway", "Technique", "Useful Correction", "Myth-busting", "Day in the Life" — draw from the brand brain's content patterns when included below, otherwise use a sensible short label).
 
 ## CTA styles to draw from
 ${brand.ctaStyles.join(", ")}
@@ -91,7 +100,7 @@ ${brand.ctaStyles.join(", ")}
 ${reelsBlock}
 
 ## Task
-Generate exactly ${BRIEFS_PER_RUN} reel briefs for "${brand.name}", each grounded in a DIFFERENT content pillar (rotate through the pillars above), taking inspiration from what's working in the reels listed above (hook style, pacing, format) WITHOUT copying them — adapt the pattern to Chef Rulo's own voice and offerings.
+Generate exactly ${BRIEFS_PER_RUN} reel briefs for "${brand.name}", each grounded in a DIFFERENT brand pillar (rotate through: ${pillarNames.join(", ")}), taking inspiration from what's working in the reels listed above (hook style, pacing, format) WITHOUT copying them — adapt the pattern to Chef Rulo's own voice and offerings.
 
 Each brief is a sequence of beats. A beat is ONE shot of real footage. For each beat, separate three things that must never be mixed into one string:
 - "visual": what the camera shows (a direction for whoever is filming/editing — never spoken, never on screen as text)
@@ -101,8 +110,10 @@ A beat can have voiceover only, onScreenText only, both, or neither (pure visual
 
 Respond with ONLY a raw JSON array (no markdown fences, no prose before or after), where each item has exactly this shape:
 {
-  "pillar": "<one of the pillar names above>",
-  "format": "<short format label, e.g. 'day in the life', 'recipe walkthrough', 'myth-busting', 'event recap', 'before/after'>",
+  "brandPillar": "<one of the brand pillar names above>",
+  "editorialTerritory": "<concrete subject-matter territory, see above>",
+  "topic": "<the specific topic this piece covers, one sentence>",
+  "contentPattern": "<the structural pattern used, see above>",
   "hook": "<the core attention-grabbing idea in under 8 words — used as reference, not spoken verbatim unless it's also a beat's voiceover>",
   "beats": [
     { "visual": "<shot direction>", "voiceover": "<spoken line, omit if silent>", "onScreenText": "<overlay text, omit if none>", "estimatedSeconds": <integer, 2-8> }
@@ -167,7 +178,7 @@ async function main() {
       ...raw,
     };
     await writeData(`briefs/${brief.id}.json`, brief);
-    console.log(`  [${brief.pillar}] "${brief.hook}" -> data/briefs/${brief.id}.json`);
+    console.log(`  [${brief.brandPillar} / ${brief.editorialTerritory}] "${brief.hook}" -> data/briefs/${brief.id}.json`);
   }
 
   console.log(`\n${rawBriefs.length} briefs guardados en data/briefs/, status: pending_review.`);

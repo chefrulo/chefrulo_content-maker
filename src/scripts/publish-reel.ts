@@ -71,7 +71,7 @@ async function main() {
   const caption = buildCaption(brief, captionOverride);
 
   console.log("\n=== A punto de publicar en Instagram ===");
-  console.log(`Brief:   ${id} (${brief.pillar})`);
+  console.log(`Brief:   ${id} (${brief.brandPillar})`);
   console.log(`Video:   ${path.relative(process.cwd(), videoPath)}`);
   console.log(`Cuenta:  ${publishConfig.igBusinessAccountId}`);
   console.log(`Caption:\n${caption}`);

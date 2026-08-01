@@ -20,7 +20,7 @@ async function listBriefs() {
   for (const file of files) {
     if (!file.endsWith(".json")) continue;
     const brief = await readData<ReelBrief>(`briefs/${file}`);
-    console.log(`  [${brief.status}] ${brief.id}  (${brief.pillar}) "${brief.hook}"`);
+    console.log(`  [${brief.status}] ${brief.id}  (${brief.brandPillar}) "${brief.hook}"`);
   }
 }
 
