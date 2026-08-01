@@ -21,25 +21,40 @@
     "render:reel": "tsx src/scripts/render-reel.ts",
     "publish:reel": "tsx src/scripts/publish-reel.ts",
     "pipeline:research": "tsx src/scripts/pipeline-research.ts",
-    "pipeline:produce": "tsx src/scripts/pipeline-produce.ts"
+    "pipeline:produce": "tsx src/scripts/pipeline-produce.ts",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-slot": "^1.3.3",
     "@remotion/bundler": "^4.0.503",
     "@remotion/cli": "^4.0.503",
     "@remotion/renderer": "^4.0.503",
     "async-mutex": "^0.5.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "cross-spawn": "^7.0.6",
     "dotenv": "^16.4.7",
+    "lucide-react": "^1.28.0",
     "music-metadata": "^11.14.0",
+    "next": "^16.2.12",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "remotion": "^4.0.503"
+    "remotion": "^4.0.503",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "^20",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.12",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.19.2",
     "typescript": "^5"
   }

@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf7f5;
+  --foreground: #1c1410;
+  --muted: #f2ece7;
+  --muted-foreground: #7a6b5f;
+  --border: #e6dcd3;
+  --ring: #2b1810;
+  --accent: #e94560;
+  --accent-foreground: #ffffff;
+  --surface: #ffffff;
+  --destructive: #ef4444;
+
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-surface: var(--surface);
+  --color-destructive: var(--destructive);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+@keyframes cr-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cr-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes cr-dialog-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes cr-dialog-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+}
+[data-cr-overlay][data-state="open"] { animation: cr-overlay-in 180ms var(--ease-out-strong); }
+[data-cr-overlay][data-state="closed"] { animation: cr-overlay-out 140ms var(--ease-out-strong); }
+[data-cr-dialog][data-state="open"] { animation: cr-dialog-in 200ms var(--ease-out-strong); }
+[data-cr-dialog][data-state="closed"] { animation: cr-dialog-out 150ms var(--ease-out-strong); }
+
+.cr-enter {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 220ms var(--ease-out-strong), transform 220ms var(--ease-out-strong);
+}
+@starting-style {
+  .cr-enter { opacity: 0; transform: translateY(6px); }
+}
+
+.cr-press {
+  transition: transform 160ms var(--ease-out-strong), background-color 160ms ease,
+    border-color 160ms ease, color 160ms ease, box-shadow 160ms var(--ease-out-strong);
+}
+.cr-press:active { transform: scale(0.97); }
+
+@keyframes cr-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.cr-pulse { animation: cr-pulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-cr-overlay][data-state="open"],
+  [data-cr-overlay][data-state="closed"],
+  [data-cr-dialog][data-state="open"],
+  [data-cr-dialog][data-state="closed"] {
+    animation-duration: 0.01ms !important;
+  }
+  .cr-enter { transition: opacity 140ms ease; transform: none !important; }
+  .cr-press:active { transform: none; }
+  .cr-pulse { animation: none; }
+}

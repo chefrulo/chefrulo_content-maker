@@ -46,8 +46,9 @@ async function main() {
   const root = process.cwd();
 
   // Remotion serves assets from publicDir via staticFile(); symlink our real
-  // (gitignored) storage dirs in instead of copying media into public/.
-  const publicDir = path.resolve(root, "public");
+  // (gitignored) storage dirs in instead of copying media. Uses its own dir
+  // (not public/) since that's now the Next.js app's static assets folder.
+  const publicDir = path.resolve(root, ".remotion-public");
   await mkdir(publicDir, { recursive: true });
   for (const [link, target] of [
     ["voiceovers", path.resolve(root, "data", "voiceovers")],
@@ -93,6 +94,7 @@ async function main() {
   console.log(`Bundling proyecto Remotion...`);
   const bundleLocation = await bundle({
     entryPoint: path.resolve(root, "src/remotion/index.ts"),
+    publicDir,
     webpackOverride: (webpackConfig) => ({
       ...webpackConfig,
       resolve: {
