@@ -5,7 +5,7 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getBrand } from "../lib/brand.js";
-import { loadBrandBrainFoundation } from "../lib/brand-brain.js";
+import { loadBrandBrainFoundation, loadBrandBrainReelExamples } from "../lib/brand-brain.js";
 import { readDataSafe, writeData } from "../lib/data.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
 import type { InspirationScrapeResult, InspirationReel } from "../types/inspiration.js";
@@ -45,7 +45,8 @@ async function loadTopInspirationReels(): Promise<
 function buildPrompt(
   brand: Awaited<ReturnType<typeof getBrand>>,
   reels: Array<InspirationReel & { handle: string }>,
-  brandBrain: string | null
+  brandBrain: string | null,
+  reelExamples: string | null
 ): string {
   const pillarsBlock = brand.pillars
     .map(
@@ -68,6 +69,16 @@ function buildPrompt(
 The following is Chef Rulo's brand brain: positioning, editorial manifesto, writing style and guardrails. Every beat's voiceover and onScreenText must follow this — British English, the specific voice described, and especially the guardrails (never claim cultural superiority in either direction, never treat one household/region as representative of all Argentina, never use "authentic" as an unsupported verdict, never imitate accents or use stereotypes, never let a hook shame the audience or conceal the subject).
 
 ${brandBrain}
+
+---
+`
+    : "";
+
+  const reelExamplesBlock = reelExamples
+    ? `## Gold-standard reel examples — not optional inspiration
+The examples below are approved reference briefs, already in the exact output shape you must produce. They define the expected level of specificity, curiosity, cultural insight, emotional restraint and narrative clarity. Generate briefs that feel structurally and editorially comparable to these, while NEVER copying their wording, hooks or topics, and NEVER inventing personal memories, people or quotations that aren't already grounded in the brand brain above.
+
+${reelExamples}
 
 ---
 `
@@ -99,7 +110,7 @@ ${brand.ctaStyles.join(", ")}
 ## Top-performing reels from inspiration accounts (Argentine food / asado / pop-up culture creators — NOT direct competitors, just accounts whose content style and engagement patterns are worth learning from)
 ${reelsBlock}
 
-## Task
+${reelExamplesBlock}## Task
 Generate exactly ${BRIEFS_PER_RUN} reel briefs for "${brand.name}", each grounded in a DIFFERENT brand pillar (rotate through: ${pillarNames.join(", ")}), taking inspiration from what's working in the reels listed above (hook style, pacing, format) WITHOUT copying them — adapt the pattern to Chef Rulo's own voice and offerings.
 
 Each brief is a sequence of beats. A beat is ONE shot of real footage. For each beat, separate three things that must never be mixed into one string:
@@ -147,6 +158,7 @@ async function main() {
   const brand = await getBrand();
   const reels = await loadTopInspirationReels();
   const brandBrain = await loadBrandBrainFoundation();
+  const reelExamples = await loadBrandBrainReelExamples();
 
   if (reels.length === 0) {
     console.log(
@@ -158,10 +170,11 @@ async function main() {
   console.log(
     `Generando ${BRIEFS_PER_RUN} briefs usando ${reels.length} reels de referencia` +
       (brandBrain ? " y el brand brain" : " (sin brand brain — seteá BRAND_BRAIN_PATH en .env.local)") +
+      (reelExamples ? " + ejemplos gold-standard" : " (sin ejemplos gold-standard en knowledge/40-patterns/)") +
       "..."
   );
 
-  const prompt = buildPrompt(brand, reels, brandBrain);
+  const prompt = buildPrompt(brand, reels, brandBrain, reelExamples);
   const { result } = await runClaudeAgent({
     prompt,
     maxBudgetUsd: 0.5,
