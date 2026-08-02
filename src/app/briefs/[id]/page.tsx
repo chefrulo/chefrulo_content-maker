@@ -64,11 +64,13 @@ export default function BriefDetailPage({ params }: { params: Promise<{ id: stri
         )}
       </header>
 
-      {brief.status === "pending_review" && (
+      {(brief.status === "pending_review" || brief.status === "approved") && (
         <div className="flex gap-2">
-          <Button variant="accent" onClick={() => setStatus("approve")}>
-            Aprobar
-          </Button>
+          {brief.status === "pending_review" && (
+            <Button variant="accent" onClick={() => setStatus("approve")}>
+              Aprobar
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setStatus("reject")}>
             Rechazar
           </Button>
