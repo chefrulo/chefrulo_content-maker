@@ -1,8 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-import { readData } from "../lib/data.js";
-import type { ReelBrief } from "../types/brief.js";
 
 function runStep(label: string, npmScript: string): void {
   console.log(`\n=== ${label} ===`);
@@ -13,28 +9,13 @@ function runStep(label: string, npmScript: string): void {
   }
 }
 
-async function main() {
-  runStep("1/2 — Research: scraping cuentas de inspiración", "scrape:inspiration");
-  runStep("2/2 — Generando briefs", "generate:briefs");
+function main() {
+  runStep("1/2 — Scrapeando cuentas de inspiración", "scrape:inspiration");
+  runStep("2/2 — Generando trend report", "generate:trend-report");
 
-  const dir = path.resolve(process.cwd(), "data", "briefs");
-  const files = await readdir(dir).catch(() => [] as string[]);
-  const pending: ReelBrief[] = [];
-  for (const file of files) {
-    if (!file.endsWith(".json")) continue;
-    const brief = await readData<ReelBrief>(`briefs/${file}`);
-    if (brief.status === "pending_review") pending.push(brief);
-  }
-
-  console.log(`\n=== CHECKPOINT: revisión manual ===`);
-  console.log(`${pending.length} briefs esperando aprobación:\n`);
-  for (const brief of pending) {
-    console.log(`  [${brief.brandPillar} / ${brief.editorialTerritory}] ${brief.id}`);
-    console.log(`    "${brief.hook}"`);
-  }
-  console.log(`\nRevisá los JSON en data/briefs/, y para cada uno que quieras producir:`);
-  console.log(`  npm run briefs:approve <id>`);
-  console.log(`  npm run pipeline:produce <id>`);
+  console.log(`\n=== Research Intelligence: listo ===`);
+  console.log(`Reporte de tendencias guardado en data/trend-reports/. Este motor nunca genera contenido de Chef Rulo — solo inteligencia de mercado para vos.`);
+  console.log(`Para generar ideas y briefs editoriales, usá \`npm run generate:ideas -- <slug-articulo>\` y después \`npm run generate:briefs\`.`);
 }
 
 main();
