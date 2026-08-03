@@ -12,12 +12,17 @@ instead of the AI voice.
 - Per beat, three coexisting options: AI voice (default, unchanged), your own
   recording, or no voice at all (already possible today when a beat has no
   `voiceover` text).
-- Record your own voice from the browser, on the brief detail page.
+- Record your own voice from the browser, on the script detail page.
 - `OPENAI_API_KEY` only required when it's actually needed (at least one
   voiced beat without a recording).
-- No changes to the brief schema (`ReelBrief`/`ReelBeat`) or to
+- No changes to the script schema (`ReelScript`/`ReelBeat`) or to
   `render-reel.ts` / the Remotion composition — a beat's audio source stays
   an implementation detail of how `data/voiceovers/<id>/beat-N.*` got there.
+
+Note: beats (and therefore this feature) live on `ReelScript` — the
+beat-by-beat stage that comes after an abstract `ContentBrief` is approved
+and turned into a script via `generate:script`. `ContentBrief` has no beats,
+so this feature only applies once a script exists.
 
 ## Design
 
@@ -35,27 +40,27 @@ This means render-reel.ts and the `VoiceoverTimeline`/`VoiceoverBeat` types
 need zero changes — a beat with a recording is indistinguishable at render
 time from a beat with a TTS clip; both are just `audioPath` + duration.
 
-### API routes (mirrors existing `/api/exports/[id]` and `/api/briefs/[id]` patterns)
+### API routes (mirrors existing `/api/exports/[id]` and `/api/scripts/[id]` patterns)
 
-- `PUT /api/briefs/[id]/beats/[index]/recording` — body is the recorded
+- `PUT /api/scripts/[id]/beats/[index]/recording` — body is the recorded
   audio blob. Validates `index` is a real beat with `voiceover` set. Saves to
   `data/voiceovers/<id>/beat-<index>.recorded.<ext>`, where `<ext>` is
   derived from the upload's content type (webm for Chrome, mp4/m4a for
   Safari) rather than hardcoded.
-- `GET /api/briefs/[id]/beats/[index]/recording` — streams the file back for
+- `GET /api/scripts/[id]/beats/[index]/recording` — streams the file back for
   playback, 404 if none.
-- `DELETE /api/briefs/[id]/beats/[index]/recording` — removes the file;
+- `DELETE /api/scripts/[id]/beats/[index]/recording` — removes the file;
   next `generate:voiceover` run falls back to TTS for that beat.
-- `GET /api/briefs/[id]` — extended to also return `recordedBeats: number[]`
+- `GET /api/scripts/[id]` — extended to also return `recordedBeats: number[]`
   (beat indices that currently have a recording), computed the same way
   `hasVideo` already is, via `existsSync`/glob.
 
 No separate "list recordings" endpoint — `recordedBeats` on the existing
-brief-detail response is enough.
+script-detail response is enough.
 
 ### UI: `BeatRecorder` component
 
-Rendered inside each beat's list item on `src/app/briefs/[id]/page.tsx`,
+Rendered inside each beat's list item on `src/app/scripts/[id]/page.tsx`,
 only for beats where `beat.voiceover` is set. Three states:
 
 - **No recording** — "🎙 Grabar mi voz" button. Requests the mic

@@ -2,13 +2,17 @@
 
 ## Problem
 
-There's no way to take a brief's beats to a shoot on paper. The brief detail
-page is the only place the `visual`/`voiceover` per beat lives, and it's not
-formatted for reading while filming.
+There's no way to take a script's beats to a shoot on paper. The script
+detail page is the only place the `visual`/`voiceover` per beat lives, and
+it's not formatted for reading while filming.
+
+Note: beats live on `ReelScript` (the beat-by-beat stage after an abstract
+`ContentBrief` is approved and turned into a script) — this feature applies
+to scripts, not to the abstract briefs that precede them.
 
 ## Goals
 
-- A downloadable PDF shot list per brief: what to film per beat, and what's
+- A downloadable PDF shot list per script: what to film per beat, and what's
   said (so it doubles as a script if recording voice on-location).
 - Reusable approach — this is the first of what will likely be several
   printable outputs later, so pick a mechanism that isn't a one-off hack
@@ -38,11 +42,11 @@ again.
 
 ### Route
 
-`GET /api/briefs/[id]/shotlist` — builds the PDF server-side with
+`GET /api/scripts/[id]/shotlist` — builds the PDF server-side with
 `@react-pdf/renderer`'s `renderToBuffer`, returns it with
 `Content-Type: application/pdf`. No caching/persistence to disk — cheap
 enough to regenerate on every request, and it should always reflect the
-brief's current beats.
+script's current beats.
 
 ### Content
 
@@ -60,8 +64,8 @@ Per the chosen scope (visual + voiceover, not the full brief):
 
 ### Entry point
 
-A "Descargar PDF" link on `src/app/briefs/[id]/page.tsx`, next to
-Aprobar/Rechazar: plain `<a href="/api/briefs/{id}/shotlist" target="_blank">`.
+A "Descargar PDF" link on `src/app/scripts/[id]/page.tsx`, next to
+Aprobar/Rechazar: plain `<a href="/api/scripts/{id}/shotlist" target="_blank">`.
 No client-side JS needed — the browser handles the download/preview itself.
 
 ## Out of scope
@@ -70,4 +74,4 @@ No client-side JS needed — the browser handles the download/preview itself.
 - Any content beyond visual + voiceover (onScreenText, CTA, hook explanation
   beyond the header, brand pillar/territory tags).
 - Persisting generated PDFs to disk — always generated fresh from the
-  current brief.
+  current script.
