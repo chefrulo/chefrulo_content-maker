@@ -24,6 +24,7 @@ export function BeatRecorder({ scriptId, beatIndex, initiallyRecorded, onChange 
   const [hasRecording, setHasRecording] = useState(initiallyRecorded);
   const [isRecording, setIsRecording] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
@@ -32,6 +33,15 @@ export function BeatRecorder({ scriptId, beatIndex, initiallyRecorded, onChange 
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Synchronous guard for the gap between calling recorder.stop() and its
+  // "stop" event actually firing (queued as a task per the MediaRecorder
+  // spec, not synchronous). Without this, startRecording could fire in that
+  // window and reset the shared chunksRef before the first recorder's
+  // pending onstop handler reads it, corrupting the upload with the wrong
+  // take's audio. This ref is read synchronously by startRecording, so it
+  // closes the race without waiting on a re-render; isStopping (state) only
+  // mirrors it for the UI.
+  const stoppingRef = useRef(false);
 
   const recordingUrl = `/api/scripts/${scriptId}/beats/${beatIndex}/recording?v=${version}`;
 
@@ -61,6 +71,7 @@ export function BeatRecorder({ scriptId, beatIndex, initiallyRecorded, onChange 
   }, []);
 
   const startRecording = useCallback(async () => {
+    if (stoppingRef.current) return;
     setError(null);
     const mimeType = pickMimeType();
     try {
@@ -91,6 +102,8 @@ export function BeatRecorder({ scriptId, beatIndex, initiallyRecorded, onChange 
           setError("No se pudo guardar la grabación.");
         } finally {
           setIsSaving(false);
+          stoppingRef.current = false;
+          setIsStopping(false);
         }
       };
 
@@ -105,10 +118,14 @@ export function BeatRecorder({ scriptId, beatIndex, initiallyRecorded, onChange 
   }, [scriptId, beatIndex, onChange]);
 
   const stopRecording = useCallback(() => {
+    stoppingRef.current = true;
+    setIsStopping(true);
     try {
       mediaRecorderRef.current?.stop();
     } catch {
       setError("No se pudo detener la grabación.");
+      stoppingRef.current = false;
+      setIsStopping(false);
     }
     setIsRecording(false);
     stopTimer();
@@ -132,7 +149,7 @@ export function BeatRecorder({ scriptId, beatIndex, initiallyRecorded, onChange 
         <Button type="button" variant="destructive" size="sm" onClick={stopRecording}>
           <Square className="h-3.5 w-3.5" /> Detener ({elapsedSeconds}s)
         </Button>
-      ) : isSaving ? (
+      ) : isSaving || isStopping ? (
         <span className="text-xs text-muted-foreground">Guardando…</span>
       ) : hasRecording ? (
         <>
