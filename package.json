@@ -18,6 +18,7 @@
     "generate:ideas": "tsx src/scripts/generate-ideas.ts",
     "generate:briefs": "tsx src/scripts/generate-briefs.ts",
     "briefs:approve": "tsx src/scripts/approve-brief.ts",
+    "generate:script": "tsx src/scripts/generate-script.ts",
     "generate:voiceover": "tsx src/scripts/generate-voiceover.ts",
     "generate:edl": "tsx src/scripts/generate-edl.ts",
     "render:reel": "tsx src/scripts/render-reel.ts",
