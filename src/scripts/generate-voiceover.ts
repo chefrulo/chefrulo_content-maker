@@ -126,6 +126,9 @@ async function main() {
 
     const audioPath = path.join(outDir, `beat-${i}.mp3`);
     const clip = await generateSpeechClip(beat.voiceover, audioPath, { apiKey, model, voice });
+    if (!isFinitePositiveNumber(clip.durationSeconds)) {
+      throw new Error(`TTS beat ${i} (${audioPath}) has invalid/unreadable duration`);
+    }
     beats.push({
       index: i,
       text: beat.voiceover,
