@@ -33,6 +33,12 @@ async function main() {
 
   const reject = process.argv.includes("--reject");
   const script = await readData<ReelScript>(`reel-scripts/${id}.json`);
+  if (script.status === "published") {
+    console.log(
+      `El guion ${id} ya fue publicado el ${script.publishedAt} (media ${script.publishedMediaId}) — no se puede aprobar/rechazar un guion publicado.`
+    );
+    return;
+  }
   script.status = reject ? "rejected" : "approved";
   await writeData(`reel-scripts/${id}.json`, script);
   console.log(`Guion ${id} ${reject ? "rechazado" : "aprobado"}: "${script.hook}"`);
