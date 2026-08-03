@@ -12,8 +12,56 @@ import type { ReelBeat, ReelScript } from "../types/reel-script.js";
 
 type ReelScriptFields = Pick<ReelScript, "topic" | "contentPattern" | "beats" | "estimatedDurationSeconds">;
 
+interface TrendPresentationSummary {
+  topHookPatterns: string[];
+  avgDurationSeconds: number | null;
+  ctaPatterns: string[];
+  postingFrequencyNotes: string;
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+/**
+ * Extracts ONLY the presentation-relevant fields from the raw trend report
+ * JSON — topHookPatterns, avgDurationSeconds, ctaPatterns,
+ * postingFrequencyNotes. Deliberately drops saturatedTopics,
+ * emergingOpportunities and emotionalPatterns, which describe WHAT to talk
+ * about rather than how to present it: this script must never let market
+ * research influence topic, only hook phrasing, pacing and CTA style. The
+ * trend report file was already shape-validated when generate-trend-report.ts
+ * wrote it, but this is treated defensively anyway — the report is optional
+ * enrichment, so any parse/shape problem here just means proceeding without
+ * it rather than failing script generation.
+ */
+function extractPresentationTrendFields(raw: string | null): TrendPresentationSummary | null {
+  if (!raw) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+
+  const p = parsed as Record<string, unknown>;
+  const topHookPatterns = isStringArray(p.topHookPatterns) ? p.topHookPatterns : [];
+  const ctaPatterns = isStringArray(p.ctaPatterns) ? p.ctaPatterns : [];
+  const avgDurationSeconds =
+    typeof p.avgDurationSeconds === "number" && Number.isFinite(p.avgDurationSeconds) ? p.avgDurationSeconds : null;
+  const postingFrequencyNotes = typeof p.postingFrequencyNotes === "string" ? p.postingFrequencyNotes : "";
+
+  if (topHookPatterns.length === 0 && ctaPatterns.length === 0 && avgDurationSeconds === null && !postingFrequencyNotes) {
+    return null;
+  }
+
+  return { topHookPatterns, avgDurationSeconds, ctaPatterns, postingFrequencyNotes };
 }
 
 function isFinitePositiveNumber(value: unknown): value is number {
@@ -87,6 +135,11 @@ function validateReelScriptShape(parsed: unknown, raw: string): ReelScriptFields
     const validated = p.beats.map((beat, index) => validateBeat(beat, index, errors));
     if (errors.length === 0) {
       beats = validated as ReelBeat[];
+      if (!beats.some((beat) => beat.voiceover || beat.onScreenText)) {
+        errors.push(
+          `"beats" cannot all be silent — at least one beat must have a "voiceover" or "onScreenText"`
+        );
+      }
     }
   }
 
@@ -111,7 +164,7 @@ function buildPrompt(
   brief: ContentBrief,
   brandBrain: string | null,
   reelExamples: string | null,
-  trendReport: string | null
+  trendSummary: TrendPresentationSummary | null
 ): string {
   const brandBrainBlock = brandBrain
     ? `## Editorial foundation — non-negotiable, overrides everything below if they ever conflict
@@ -133,11 +186,14 @@ ${reelExamples}
 `
     : "";
 
-  const trendReportBlock = trendReport
+  const trendReportBlock = trendSummary
     ? `## Current market trends — for PRESENTATION STYLE ONLY, never for topic
-The topic, message and cultural insight are already fixed by the approved brief below — do not let this section change what the piece is about. Use it only to inform hook phrasing style, pacing, typical duration and CTA phrasing.
+The topic, message and cultural insight are already fixed by the approved brief below — do not let this section change what the piece is about. This is deliberately NOT the full trend report — only presentation-style signals are included below (no topic or opportunity data), so use it only to inform hook phrasing style, pacing, typical duration and CTA phrasing.
 
-${trendReport}
+- Typical hook patterns observed: ${trendSummary.topHookPatterns.length > 0 ? trendSummary.topHookPatterns.join("; ") : "not enough data"}
+- Typical duration: ${trendSummary.avgDurationSeconds !== null ? `${trendSummary.avgDurationSeconds}s` : "not enough data"}
+- Typical CTA phrasing patterns: ${trendSummary.ctaPatterns.length > 0 ? trendSummary.ctaPatterns.join("; ") : "not enough data"}
+- Posting cadence notes: ${trendSummary.postingFrequencyNotes || "not enough data"}
 
 ---
 `
@@ -187,10 +243,11 @@ async function main() {
   const brand = await getBrand();
   const brandBrain = await loadBrandBrainFoundation();
   const reelExamples = await loadBrandBrainReelExamples();
-  const trendReport = await loadLatestTrendReport();
+  const trendReportRaw = await loadLatestTrendReport();
+  const trendSummary = extractPresentationTrendFields(trendReportRaw);
 
   console.log(`Generando guion para "${brief.hook}"...`);
-  const prompt = buildPrompt(brand, brief, brandBrain, reelExamples, trendReport);
+  const prompt = buildPrompt(brand, brief, brandBrain, reelExamples, trendSummary);
   const { result } = await runClaudeAgent({ prompt, maxBudgetUsd: 0.3, name: "chefrulo-script-generator" });
 
   let text = result.trim();
