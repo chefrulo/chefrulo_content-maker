@@ -13,6 +13,66 @@ import type { ContentBrief } from "../types/content-brief.js";
 
 const BRIEFS_PER_RUN = 5;
 
+type ContentBriefFields = Pick<
+  ContentBrief,
+  "editorialTerritory" | "hook" | "coreMessage" | "culturalInsight" | "personalStory" | "educationalValue" | "cta"
+>;
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/**
+ * Validates that the model's parsed JSON response matches the expected
+ * ContentBrief fields before it's ever spread into the persisted brief.
+ * This is the code-level backstop that keeps the trusted, code-computed
+ * fields (id, status, ideaId, ideaText, brandPillar) safe from being
+ * silently overwritten by a stray same-named key in the model's response —
+ * e.g. a wayward "status": "approved" bypassing the human-review gate.
+ * Returns a clean object containing ONLY the validated fields.
+ */
+function validateContentBriefShape(parsed: unknown, raw: string): ContentBriefFields {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`Content brief response is not a JSON object. Raw response: ${raw}`);
+  }
+
+  const p = parsed as Record<string, unknown>;
+  const errors: string[] = [];
+
+  const requiredStringFields = [
+    "editorialTerritory",
+    "hook",
+    "coreMessage",
+    "culturalInsight",
+    "educationalValue",
+    "cta",
+  ] as const;
+  for (const field of requiredStringFields) {
+    if (!isNonEmptyString(p[field])) {
+      errors.push(`"${field}" must be a non-empty string`);
+    }
+  }
+
+  if (p.personalStory !== undefined && !isNonEmptyString(p.personalStory)) {
+    errors.push(`"personalStory" must be a non-empty string when present, or omitted entirely`);
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Content brief response failed shape validation:\n- ${errors.join("\n- ")}\nRaw response: ${raw}`);
+  }
+
+  const brief: ContentBriefFields = {
+    editorialTerritory: p.editorialTerritory as string,
+    hook: p.hook as string,
+    coreMessage: p.coreMessage as string,
+    culturalInsight: p.culturalInsight as string,
+    educationalValue: p.educationalValue as string,
+    cta: p.cta as string,
+  };
+  if (p.personalStory !== undefined) brief.personalStory = p.personalStory as string;
+  return brief;
+}
+
 async function loadUsedIdeaIds(): Promise<Set<string>> {
   const dir = path.resolve(process.cwd(), "data", "content-briefs");
   let files: string[];
@@ -109,6 +169,11 @@ async function main() {
   const brandBrain = await loadBrandBrainFoundation();
   const reelExamples = await loadBrandBrainReelExamples();
   const pillarNames = brand.pillars.map((p) => p.name);
+  if (pillarNames.length === 0) {
+    throw new Error(
+      "data/brand.json tiene pillars: [] — no hay brand pillars para asignar a los briefs. Agregá al menos uno."
+    );
+  }
   const selected = unusedIdeas.slice(0, BRIEFS_PER_RUN);
 
   console.log(`Generando ${selected.length} briefs desde la Idea Library (${unusedIdeas.length} ideas sin usar disponibles)...`);
@@ -122,7 +187,16 @@ async function main() {
     let text = result.trim();
     const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (fenced?.[1]) text = fenced[1].trim();
-    const parsed = JSON.parse(text);
+
+    let parsedRaw: unknown;
+    try {
+      parsedRaw = JSON.parse(text);
+    } catch (err) {
+      throw new Error(
+        `Failed to parse content brief JSON response: ${err instanceof Error ? err.message : err}\nRaw response: ${text}`
+      );
+    }
+    const parsed = validateContentBriefShape(parsedRaw, text);
 
     const brief: ContentBrief = {
       id: randomUUID(),
