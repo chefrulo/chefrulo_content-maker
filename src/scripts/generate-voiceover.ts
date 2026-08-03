@@ -20,10 +20,10 @@ async function main() {
   const model = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
   const voice = process.env.OPENAI_TTS_VOICE || "marin";
 
-  const brief = await readData<ReelScript>(`briefs/${id}.json`);
+  const brief = await readData<ReelScript>(`reel-scripts/${id}.json`);
   if (brief.status !== "approved") {
     console.log(
-      `El brief ${id} todavía está en status "${brief.status}". Corré \`npm run briefs:approve ${id}\` primero.`
+      `El brief ${id} todavía está en status "${brief.status}". Corré \`npm run scripts:approve ${id}\` primero.`
     );
     return;
   }

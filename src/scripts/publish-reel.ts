@@ -46,7 +46,7 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelScript>(`briefs/${id}.json`);
+  const brief = await readData<ReelScript>(`reel-scripts/${id}.json`);
 
   if (brief.status === "published" && !force) {
     console.log(
@@ -56,7 +56,7 @@ async function main() {
   }
   if (brief.status !== "approved" && brief.status !== "published") {
     console.log(
-      `El brief ${id} está en status "${brief.status}", no "approved". Corré \`npm run briefs:approve ${id}\` primero.`
+      `El brief ${id} está en status "${brief.status}", no "approved". Corré \`npm run scripts:approve ${id}\` primero.`
     );
     return;
   }
@@ -95,7 +95,7 @@ async function main() {
     publishedMediaId: result.mediaId,
     publishedVideoUrl: result.videoUrl,
   };
-  await writeData(`briefs/${id}.json`, updated);
+  await writeData(`reel-scripts/${id}.json`, updated);
 
   console.log(`\nPublicado. Media ID: ${result.mediaId}`);
 }

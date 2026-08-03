@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { readData } from "../lib/data.js";
-import type { ReelBrief } from "../types/brief.js";
+import type { ReelScript } from "../types/reel-script.js";
 
 function runStep(label: string, npmScript: string, args: string[]): void {
   console.log(`\n=== ${label} ===`);
@@ -18,10 +18,10 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelBrief>(`briefs/${id}.json`);
+  const brief = await readData<ReelScript>(`reel-scripts/${id}.json`);
   if (brief.status !== "approved") {
     console.log(
-      `El brief ${id} está en status "${brief.status}", no "approved". Corré \`npm run briefs:approve ${id}\` primero.`
+      `El brief ${id} está en status "${brief.status}", no "approved". Corré \`npm run scripts:approve ${id}\` primero.`
     );
     return;
   }
