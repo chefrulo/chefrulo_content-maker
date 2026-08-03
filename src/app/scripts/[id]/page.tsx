@@ -65,6 +65,14 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
             Inspirado en: {brief.inspiredBy.map((h) => `@${h.replace(/^@/, "")}`).join(", ")}
           </p>
         )}
+        <a
+          href={`/api/scripts/${id}/shotlist`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block mt-2 text-xs text-accent hover:underline"
+        >
+          Descargar hoja de rodaje (PDF)
+        </a>
       </header>
 
       {(brief.status === "pending_review" || brief.status === "approved") && (
