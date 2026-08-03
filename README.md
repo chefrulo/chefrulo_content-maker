@@ -8,7 +8,7 @@ The system is split into two independent engines: a **Research Intelligence** en
 
 - Node 20+
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
-- [`cloudflared`](https://github.com/cloudflare/cloudflared) on PATH — only needed for Phase 6 (publish)
+- [`cloudflared`](https://github.com/cloudflare/cloudflared) on PATH — only needed for step 8 (produce and publish)
 - A local clone of the `chef-rulo-brand-brain` repo, with `BRAND_BRAIN_PATH` pointing at it — required for idea and brief generation, see "Brand Brain" below
 - Accounts/tokens: Meta (Instagram Graph API), Apify, OpenAI — `npm run doctor` tells you what's missing
 
@@ -20,7 +20,7 @@ npm run setup
 npm run doctor
 ```
 
-Fill in `.env.local` (copied from `.env.example`) as each phase below needs it.
+Fill in `.env.local` (copied from `.env.example`) as each step below needs it.
 
 ## Brand Brain (required)
 
