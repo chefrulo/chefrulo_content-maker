@@ -239,6 +239,10 @@ async function main() {
     console.log(`El brief ${id} todavía está en status "${brief.status}". Corré \`npm run briefs:approve ${id}\` primero.`);
     return;
   }
+  if (brief.reelScriptId) {
+    console.log(`El brief ${id} ya tiene un guion generado (${brief.reelScriptId}).`);
+    return;
+  }
 
   const brand = await getBrand();
   const brandBrain = await loadBrandBrainFoundation();
