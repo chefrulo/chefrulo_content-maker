@@ -9,6 +9,10 @@ import { loadBrandBrainFoundation } from "../lib/brand-brain.js";
 const IDEA_LIBRARY_SUBDIR = "knowledge/15-idea-library";
 const ARTICLES_SUBDIR = "knowledge/20-articles";
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
 async function main() {
   const slug = process.argv[2];
   if (!slug) {
@@ -65,7 +69,21 @@ Do not write hooks, scripts or answers — just the questions. Respond with ONLY
   let text = result.trim();
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenced?.[1]) text = fenced[1].trim();
-  const ideas: string[] = JSON.parse(text);
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error(
+      `Failed to parse ideas JSON response: ${err instanceof Error ? err.message : err}\nRaw response: ${text}`
+    );
+  }
+  if (!isStringArray(parsed)) {
+    throw new Error(
+      `Ideas response is not a JSON array of strings. Raw response: ${JSON.stringify(parsed)}`
+    );
+  }
+  const ideas = parsed;
 
   const newIdeas = ideas.filter((idea) => !existingIdeas.has(idea));
   if (newIdeas.length === 0) {
@@ -73,9 +91,12 @@ Do not write hooks, scripts or answers — just the questions. Respond with ONLY
     return;
   }
 
-  const header = existing.trim().length > 0 ? "" : `# Idea Library: ${slug}\n\n`;
   const appendix = newIdeas.map((idea) => `- ${idea}`).join("\n") + "\n";
-  await writeFile(libraryPath, existing + (existing.trim().length > 0 ? "\n" : header) + appendix, "utf-8");
+  const output =
+    existing.trim().length > 0
+      ? existing.replace(/\n*$/, "\n") + appendix
+      : `# Idea Library: ${slug}\n\n` + appendix;
+  await writeFile(libraryPath, output, "utf-8");
 
   console.log(`\n${newIdeas.length} ideas nuevas agregadas a ${path.relative(brainPath, libraryPath)}:\n`);
   for (const idea of newIdeas) console.log(`  - ${idea}`);
