@@ -5,8 +5,8 @@ export const maxDuration = 600;
 
 export async function POST() {
   const stream = streamNpmScripts([
-    { label: "Research", args: ["scrape:inspiration"] },
-    { label: "Briefs", args: ["generate:briefs"] },
+    { label: "Scrape", args: ["scrape:inspiration"] },
+    { label: "Trend report", args: ["generate:trend-report"] },
   ]);
   return sseResponse(stream);
 }
