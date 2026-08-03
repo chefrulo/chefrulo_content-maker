@@ -905,35 +905,48 @@ git commit -m "feat: add generate:script (approved ContentBrief -> ReelScript be
 
 ---
 
-### Task 10: Point voiceover/EDL/render/publish scripts at `data/reel-scripts/`
+### Task 10: Point voiceover/EDL/render/publish/produce scripts at `data/reel-scripts/`
 
 **Files:**
 - Modify: `src/scripts/generate-voiceover.ts`
 - Modify: `src/scripts/generate-edl.ts`
 - Modify: `src/scripts/render-reel.ts`
 - Modify: `src/scripts/publish-reel.ts`
+- Modify: `src/scripts/pipeline-produce.ts` (missed in the original plan pass — it
+  also imports `ReelBrief` from `../types/brief.js` and reads `briefs/${id}.json`
+  for its approved-status gate, same as the other four)
 
 **Step 1: In each file, replace every occurrence of the string `` `briefs/${id}.json` `` with `` `reel-scripts/${id}.json` ``**
 
 Run this to find every occurrence first:
 ```bash
-grep -n 'briefs/\${id}' src/scripts/generate-voiceover.ts src/scripts/generate-edl.ts src/scripts/render-reel.ts src/scripts/publish-reel.ts
+grep -n 'briefs/\${id}' src/scripts/generate-voiceover.ts src/scripts/generate-edl.ts src/scripts/render-reel.ts src/scripts/publish-reel.ts src/scripts/pipeline-produce.ts
 ```
 
 Edit each match found. Also update any `Corré \`npm run briefs:approve ...\`` message
 strings to say `scripts:approve` instead (this matches the npm script name
 introduced in Task 11).
 
+**Step 1b: `pipeline-produce.ts` also needs its type import fixed**
+
+Unlike the other four files, `pipeline-produce.ts` was never touched in Task 2, so
+it still has `import type { ReelBrief } from "../types/brief.js";` and a
+`const brief = await readData<ReelBrief>(...)` annotation. Update both to
+`ReelScript` / `../types/reel-script.js`, same substitution Task 2 already did
+for the other four scripts. Its `Uso: npm run pipeline:produce <briefId>` message
+can stay as-is (it's a generic CLI usage string, not a "brief" noun reference).
+
 **Step 2: Verify**
 
 Run: `npx tsc --noEmit -p .`
-Expected: no errors (these files already import `ReelScript` from Task 2, only the
-data path string literals change here).
+Expected: no errors (four of these five files already import `ReelScript` from
+Task 2; `pipeline-produce.ts` gets that fixed in Step 1b above — only the data
+path string literals change for the other four).
 
 **Step 3: Commit**
 
 ```bash
-git add src/scripts/generate-voiceover.ts src/scripts/generate-edl.ts src/scripts/render-reel.ts src/scripts/publish-reel.ts
+git add src/scripts/generate-voiceover.ts src/scripts/generate-edl.ts src/scripts/render-reel.ts src/scripts/publish-reel.ts src/scripts/pipeline-produce.ts
 git commit -m "refactor: point production scripts at data/reel-scripts/"
 ```
 
