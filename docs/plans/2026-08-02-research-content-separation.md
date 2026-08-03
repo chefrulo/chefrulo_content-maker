@@ -1219,11 +1219,16 @@ and fix if anything matches.
 **Step 2: Verify**
 
 Run: `npx tsc --noEmit -p .`
-Expected: no errors (this is the last thing referencing the old `@/types/brief`
-path, so this should be the point where the full project goes green again).
+Expected: errors remain, confined to exactly three files not yet handled by
+this task — `src/app/page.tsx`, `src/components/BriefCard.tsx`,
+`src/app/briefs/[id]/page.tsx` (Tasks 14/15 fix these). Nothing under
+`src/app/api/` should show any error. The project does NOT go fully green
+here — that happens after Task 15, per the same caveat Task 2 already
+documents ("Don't run the full-project `tsc` gate until Task 19").
 
 Run: `grep -rn "@/types/brief\b\|types/brief\.js" src`
-Expected: no matches anywhere in the project.
+Expected: matches only in the same three files above — none anywhere under
+`src/app/api/`.
 
 **Step 3: Commit**
 
