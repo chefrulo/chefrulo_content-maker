@@ -7,16 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PipelineRunner } from "@/components/PipelineRunner";
-import type { ReelBrief } from "@/types/brief";
+import type { ReelScript } from "@/types/reel-script";
 
-export default function BriefDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ScriptDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [brief, setBrief] = useState<ReelBrief | null>(null);
+  const [brief, setBrief] = useState<ReelScript | null>(null);
   const [hasVideo, setHasVideo] = useState(false);
   const [confirmText, setConfirmText] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/briefs/${id}`);
+    const res = await fetch(`/api/scripts/${id}`);
     if (!res.ok) return;
     const data = await res.json();
     setBrief(data.brief);
@@ -37,7 +37,7 @@ export default function BriefDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const setStatus = async (action: "approve" | "reject") => {
-    await fetch(`/api/briefs/${id}/${action}`, { method: "POST" });
+    await fetch(`/api/scripts/${id}/${action}`, { method: "POST" });
     load();
   };
 
@@ -112,7 +112,7 @@ export default function BriefDetailPage({ params }: { params: Promise<{ id: stri
             Producir video
           </h2>
           <PipelineRunner
-            url={`/api/briefs/${id}/produce`}
+            url={`/api/scripts/${id}/produce`}
             triggerLabel="Generar voiceover, EDL y renderizar"
             runningLabel="Produciendo…"
             initialSteps={["Voiceover", "EDL", "Render"]}
@@ -150,7 +150,7 @@ export default function BriefDetailPage({ params }: { params: Promise<{ id: stri
             className="max-w-xs mb-3"
           />
           <PipelineRunner
-            url={`/api/briefs/${id}/publish`}
+            url={`/api/scripts/${id}/publish`}
             body={{ confirm: true }}
             triggerLabel="Publicar en Instagram"
             runningLabel="Publicando…"
