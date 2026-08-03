@@ -277,6 +277,10 @@ async function main() {
     ...parsed,
   };
   await writeData(`reel-scripts/${script.id}.json`, script);
+
+  brief.reelScriptId = script.id;
+  await writeData(`content-briefs/${brief.id}.json`, brief);
+
   console.log(`\nGuion guardado en data/reel-scripts/${script.id}.json`);
 }
 

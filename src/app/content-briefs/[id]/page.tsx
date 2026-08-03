@@ -93,13 +93,25 @@ export default function ContentBriefDetailPage({ params }: { params: Promise<{ i
       {brief.status === "approved" && (
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Generar guion</h2>
-          <PipelineRunner
-            url={`/api/content-briefs/${id}/generate-script`}
-            triggerLabel="Generar guion"
-            runningLabel="Generando…"
-            initialSteps={["Script"]}
-            onSuccess={load}
-          />
+          {brief.reelScriptId ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Ya se generó un guion a partir de este brief.</p>
+              <Link
+                href={`/scripts/${brief.reelScriptId}`}
+                className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline"
+              >
+                Ver guion generado
+              </Link>
+            </div>
+          ) : (
+            <PipelineRunner
+              url={`/api/content-briefs/${id}/generate-script`}
+              triggerLabel="Generar guion"
+              runningLabel="Generando…"
+              initialSteps={["Script"]}
+              onSuccess={load}
+            />
+          )}
         </section>
       )}
     </main>

@@ -12,4 +12,5 @@ export interface ContentBrief {
   cta: string;
   status: "pending_review" | "approved" | "rejected";
   createdAt: string;
+  reelScriptId?: string;
 }
