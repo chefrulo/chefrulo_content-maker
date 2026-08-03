@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PipelineRunner } from "@/components/PipelineRunner";
+import { BeatRecorder } from "@/components/BeatRecorder";
 import type { ReelScript } from "@/types/reel-script";
 
 export default function ScriptDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,6 +15,7 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
   const [brief, setBrief] = useState<ReelScript | null>(null);
   const [hasVideo, setHasVideo] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+  const [recordedBeats, setRecordedBeats] = useState<number[]>([]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/scripts/${id}`);
@@ -21,6 +23,7 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
     const data = await res.json();
     setBrief(data.brief);
     setHasVideo(data.hasVideo);
+    setRecordedBeats(data.recordedBeats ?? []);
   }, [id]);
 
   useEffect(() => {
@@ -101,6 +104,14 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
               <p className="text-[10px] text-muted-foreground pl-6">~{beat.estimatedSeconds}s</p>
+              {beat.voiceover && (
+                <BeatRecorder
+                  scriptId={id}
+                  beatIndex={i}
+                  initiallyRecorded={recordedBeats.includes(i)}
+                  onChange={load}
+                />
+              )}
             </li>
           ))}
         </ol>
