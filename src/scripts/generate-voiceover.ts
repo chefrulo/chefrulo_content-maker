@@ -5,7 +5,7 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { readData, writeData } from "../lib/data.js";
 import { generateSpeechClip } from "../lib/openai-tts.js";
-import type { ReelBrief } from "../types/brief.js";
+import type { ReelScript } from "../types/reel-script.js";
 import type { VoiceoverTimeline, VoiceoverBeat } from "../types/voiceover.js";
 
 async function main() {
@@ -20,7 +20,7 @@ async function main() {
   const model = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
   const voice = process.env.OPENAI_TTS_VOICE || "marin";
 
-  const brief = await readData<ReelBrief>(`briefs/${id}.json`);
+  const brief = await readData<ReelScript>(`briefs/${id}.json`);
   if (brief.status !== "approved") {
     console.log(
       `El brief ${id} todavía está en status "${brief.status}". Corré \`npm run briefs:approve ${id}\` primero.`

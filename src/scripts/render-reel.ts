@@ -7,7 +7,7 @@ import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { getBrand } from "../lib/brand.js";
 import { readData, readDataSafe } from "../lib/data.js";
-import type { ReelBrief } from "../types/brief.js";
+import type { ReelScript } from "../types/reel-script.js";
 import type { Edl } from "../types/edl.js";
 import type { VoiceoverTimeline } from "../types/voiceover.js";
 import type { ReelCompositionProps, RenderBeat } from "../remotion/ReelComposition.js";
@@ -19,7 +19,7 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelBrief>(`briefs/${id}.json`);
+  const brief = await readData<ReelScript>(`briefs/${id}.json`);
   if (brief.status !== "approved") {
     console.log(
       `El brief ${id} todavía está en status "${brief.status}". Corré \`npm run briefs:approve ${id}\` primero.`

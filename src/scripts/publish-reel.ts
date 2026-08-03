@@ -6,7 +6,7 @@ import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { readData, writeData } from "../lib/data.js";
 import { publishReel, type PublishConfig } from "../lib/publish-reel.js";
-import type { ReelBrief } from "../types/brief.js";
+import type { ReelScript } from "../types/reel-script.js";
 
 const REQUIRED_ENV = ["IG_BUSINESS_ACCOUNT_ID", "IG_ACCESS_TOKEN"] as const;
 
@@ -21,7 +21,7 @@ function loadPublishConfig(): PublishConfig {
   };
 }
 
-function buildCaption(brief: ReelBrief, override?: string): string {
+function buildCaption(brief: ReelScript, override?: string): string {
   if (override) return override;
   return `${brief.hook}\n\n${brief.cta}`;
 }
@@ -46,7 +46,7 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelBrief>(`briefs/${id}.json`);
+  const brief = await readData<ReelScript>(`briefs/${id}.json`);
 
   if (brief.status === "published" && !force) {
     console.log(
@@ -88,7 +88,7 @@ async function main() {
   console.log("Abriendo túnel local y publicando...");
   const result = await publishReel(videoPath, caption, publishConfig);
 
-  const updated: ReelBrief = {
+  const updated: ReelScript = {
     ...brief,
     status: "published",
     publishedAt: new Date().toISOString(),

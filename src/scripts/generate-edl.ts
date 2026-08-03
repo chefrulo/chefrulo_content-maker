@@ -6,7 +6,7 @@ import path from "node:path";
 import { getVideoMetadata } from "@remotion/renderer";
 import { readData, writeData } from "../lib/data.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
-import type { ReelBrief } from "../types/brief.js";
+import type { ReelScript } from "../types/reel-script.js";
 import type { Edl, EdlBeat } from "../types/edl.js";
 
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".m4v"]);
@@ -54,7 +54,7 @@ function parseAssignments(raw: string): ClaudeAssignment[] {
 }
 
 async function assignFootageToBeats(
-  brief: ReelBrief,
+  brief: ReelScript,
   clips: FootageClip[]
 ): Promise<Map<number, ClaudeAssignment>> {
   const beatsBlock = brief.beats
@@ -87,7 +87,7 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelBrief>(`briefs/${id}.json`);
+  const brief = await readData<ReelScript>(`briefs/${id}.json`);
   if (brief.status !== "approved") {
     console.log(
       `El brief ${id} todavía está en status "${brief.status}". Corré \`npm run briefs:approve ${id}\` primero.`

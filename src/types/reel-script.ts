@@ -5,9 +5,10 @@ export interface ReelBeat {
   estimatedSeconds: number;
 }
 
-export interface ReelBrief {
+export interface ReelScript {
   id: string;
   createdAt: string;
+  contentBriefId: string;
   brandPillar: string;
   editorialTerritory: string;
   topic: string;
