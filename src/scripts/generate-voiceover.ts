@@ -3,12 +3,37 @@ config({ path: ".env.local" });
 
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { parseFile } from "music-metadata";
+import { Input, FilePathSource, ALL_FORMATS } from "mediabunny";
 import { readData, writeData } from "../lib/data.js";
 import { generateSpeechClip } from "../lib/openai-tts.js";
 import { findRecordedBeatFile } from "../lib/beat-recording.js";
 import type { ReelScript } from "../types/reel-script.js";
 import type { VoiceoverTimeline, VoiceoverBeat } from "../types/voiceover.js";
+
+function isFinitePositiveNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+// Browser MediaRecorder output (webm/opus) is muxed for live streaming and
+// routinely omits the container's declared Duration element — this is why a
+// fresh recording's `<audio>.duration` famously reads `Infinity` in the
+// browser. music-metadata's Matroska parser only reads that declared
+// element with no fallback, so it silently returns `undefined` for these
+// files. mediabunny's `computeDuration()` instead scans packet timestamps
+// directly (the same approach ffprobe's decode path uses), which works
+// whether or not the container declares a duration and regardless of
+// whether the file has a video track (recorded beats are audio-only, so
+// @remotion/renderer's ffmpeg-backed `getVideoMetadata` — which requires a
+// video stream and throws "No video stream found" otherwise — is not an
+// option here).
+async function measureRecordedDuration(filePath: string): Promise<number> {
+  const input = new Input({ formats: ALL_FORMATS, source: new FilePathSource(filePath) });
+  try {
+    return await input.computeDuration();
+  } finally {
+    input.dispose();
+  }
+}
 
 async function main() {
   const id = process.argv[2];
@@ -77,8 +102,16 @@ async function main() {
 
     const recordedFile = recordedFileByIndex.get(i);
     if (recordedFile) {
-      const metadata = await parseFile(recordedFile);
-      const durationSeconds = metadata.format.duration ?? 0;
+      let durationSeconds: number;
+      try {
+        durationSeconds = await measureRecordedDuration(recordedFile);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        throw new Error(`Recorded beat ${i} (${recordedFile}) has invalid/unreadable duration: ${reason}`);
+      }
+      if (!isFinitePositiveNumber(durationSeconds)) {
+        throw new Error(`Recorded beat ${i} (${recordedFile}) has invalid/unreadable duration`);
+      }
       beats.push({
         index: i,
         text: beat.voiceover,
