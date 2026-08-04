@@ -1,14 +1,12 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { brandBrainGateway } from "../lib/brand-brain.js";
+import { loadAllIdeas } from "../lib/idea-library.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
-import { loadBrandBrainFoundation } from "../lib/brand-brain.js";
-import { parseIdeasFromMarkdown } from "../lib/idea-library.js";
-
-const IDEA_LIBRARY_SUBDIR = "knowledge/15-idea-library";
-const ARTICLES_SUBDIR = "knowledge/20-articles";
+import { ideaProposalRepository } from "../repositories/operational-repository.js";
+import type { IdeaProposalBatch, ProposedIdea } from "../types/idea-proposal.js";
 
 interface GeneratedIdea {
   title: string;
@@ -49,60 +47,50 @@ function articleIdFromMarkdown(slug: string, article: string): string {
   return article.match(/^id:\s*(\S+)\s*$/m)?.[1] ?? `article-${slug}`;
 }
 
-function nextIdeaNumber(existingIds: string[]): number {
-  const numbers = existingIds
-    .map((id) => Number(id.match(/-(\d+)$/)?.[1]))
-    .filter((value) => Number.isInteger(value));
-  return numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+function hashContent(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+async function loadProposalQuestions(articleSlug: string): Promise<Set<string>> {
+  const questions = new Set<string>();
+  for (const proposal of await ideaProposalRepository.list()) {
+    if (proposal.sourceArticleSlug !== articleSlug) continue;
+    for (const idea of proposal.ideas) questions.add(idea.question);
+  }
+  return questions;
 }
 
 async function main() {
   const slug = process.argv[2];
   if (!slug) {
     console.log("Uso: npm run generate:ideas -- <slug-articulo>");
-    console.log("El slug corresponde a un archivo en knowledge/20-articles/<slug>.md del Brand Brain.");
     return;
   }
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     throw new Error(`Slug inválido: ${slug}`);
   }
 
-  const brainPath = process.env.BRAND_BRAIN_PATH;
-  if (!brainPath) {
-    throw new Error("BRAND_BRAIN_PATH no está seteado en .env.local — es obligatorio para generar ideas.");
-  }
+  const { revision, foundation, canonicalArticle } =
+    await brandBrainGateway.loadGenerationContext(slug);
+  const sourceArticleId = articleIdFromMarkdown(slug, canonicalArticle);
+  const approvedAndReviewIdeas = await loadAllIdeas();
+  const existingQuestions = new Set(
+    approvedAndReviewIdeas
+      .filter((idea) => idea.articleSlug === slug)
+      .map((idea) => idea.ideaText)
+  );
+  for (const question of await loadProposalQuestions(slug)) existingQuestions.add(question);
 
-  const articlePath = path.join(brainPath, ARTICLES_SUBDIR, `${slug}.md`);
-  let article: string;
-  try {
-    article = await readFile(articlePath, "utf-8");
-  } catch {
-    throw new Error(`No se encontró ${articlePath}. Creá el artículo canónico primero.`);
-  }
+  const prompt = `## Brand Brain foundation
+${foundation}
 
-  const foundation = await loadBrandBrainFoundation();
-  const libraryDir = path.join(brainPath, IDEA_LIBRARY_SUBDIR);
-  await mkdir(libraryDir, { recursive: true });
-  const libraryPath = path.join(libraryDir, `${slug}.md`);
-  let existing = "";
-  try {
-    existing = await readFile(libraryPath, "utf-8");
-  } catch {
-    // file doesn't exist yet, that's fine
-  }
-  const parsedExisting = existing.trim() ? parseIdeasFromMarkdown(slug, existing) : [];
-  const existingQuestions = new Set(parsedExisting.map((idea) => idea.ideaText));
-  const sourceArticleId = articleIdFromMarkdown(slug, article);
+---
 
-  const prompt = `${foundation ? `## Brand Brain\n${foundation}\n\n---\n\n` : ""}## Canonical article
-${article}
+## Canonical article
+${canonicalArticle}
 
 ## Task
-Generate 8 to 12 concrete, channel-neutral editorial ideas grounded ONLY in this article. Each idea must have one focused question, the single insight that answers it and a concise explanation of why the audience would care. Do not invent facts or personal memories. Match the specificity of these examples:
-
-- Why does an asado last five hours if the meat cooks much faster?
-- Why is choripán served before the meat?
-- What does the asador actually do?
+Generate 8 to 12 concrete, channel-neutral editorial ideas grounded ONLY in this article. Each idea must have one focused question, the single insight that answers it and a concise explanation of why the audience would care. Do not invent facts or personal memories.
 
 Do not write hooks, CTAs, formats, scripts or shot directions. Respond with ONLY a raw JSON array, no markdown fences or prose, using this shape:
 [
@@ -114,8 +102,12 @@ Do not write hooks, CTAs, formats, scripts or shot directions. Respond with ONLY
   }
 ]`;
 
-  console.log(`Generando ideas para "${slug}"...`);
-  const { result } = await runClaudeAgent({ prompt, maxBudgetUsd: 0.3, name: "chefrulo-idea-generator" });
+  console.log(`Generando propuestas de ideas para "${slug}"...`);
+  const { result } = await runClaudeAgent({
+    prompt,
+    maxBudgetUsd: 0.3,
+    name: "chefrulo-idea-proposal-generator",
+  });
 
   let text = result.trim();
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -124,39 +116,44 @@ Do not write hooks, CTAs, formats, scripts or shot directions. Respond with ONLY
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
-  } catch (err) {
+  } catch (error) {
     throw new Error(
-      `Failed to parse ideas JSON response: ${err instanceof Error ? err.message : err}\nRaw response: ${text}`
+      `Failed to parse ideas JSON response: ${error instanceof Error ? error.message : error}\nRaw response: ${text}`
     );
   }
-  const ideas = parseGeneratedIdeas(parsed);
 
-  const newIdeas = ideas.filter((idea) => !existingQuestions.has(idea.question));
-  if (newIdeas.length === 0) {
-    console.log("Todas las ideas generadas ya estaban en la librería. Nada nuevo para agregar.");
+  const generatedIdeas = parseGeneratedIdeas(parsed).filter(
+    (idea) => !existingQuestions.has(idea.question)
+  );
+  if (generatedIdeas.length === 0) {
+    console.log("Todas las ideas generadas ya existen o están propuestas. Nada nuevo para guardar.");
     return;
   }
 
-  let nextNumber = nextIdeaNumber(parsedExisting.map((idea) => idea.ideaId));
-  const appendix =
-    newIdeas
-      .map((idea) => {
-        const ideaId = `idea-${slug}-${String(nextNumber++).padStart(3, "0")}`;
-        return `## ${ideaId} — ${idea.title}\n\n**Status:** review\n**Signature idea:** no\n**Question:** ${idea.question}\n**Core insight:** ${idea.coreInsight}\n**Why it matters:** ${idea.whyItMatters}\n**Source article:** ${sourceArticleId}\n`;
-      })
-      .join("\n") + "\n";
-  const output =
-    existing.trim().length > 0
-      ? existing.replace(/\n*$/, "\n") + appendix
-      : `---\narticle_id: ${sourceArticleId}\narticle_slug: ${slug}\narticle_path: ../20-articles/${slug}.md\n---\n\n# ${slug} Idea Library\n\nIdeas in this file are channel-neutral editorial assets. Only entries with \`Status: approved\` may be used to generate briefs.\n\n${appendix}`;
-  await writeFile(libraryPath, output, "utf-8");
+  const ideas: ProposedIdea[] = generatedIdeas.map((idea) => ({
+    id: `idea-${slug}-${randomUUID().replaceAll("-", "").slice(0, 8)}`,
+    ...idea,
+    status: "pending_review",
+  }));
+  const proposal: IdeaProposalBatch = {
+    id: randomUUID(),
+    createdAt: new Date().toISOString(),
+    sourceArticleId,
+    sourceArticleSlug: slug,
+    sourceArticleHash: hashContent(canonicalArticle),
+    brandBrainRevision: revision,
+    status: "pending_review",
+    ideas,
+  };
 
-  console.log(`\n${newIdeas.length} ideas nuevas agregadas a ${path.relative(brainPath, libraryPath)}:\n`);
-  for (const idea of newIdeas) console.log(`  - ${idea.question}`);
-  console.log(`\nLas ideas quedaron en status review. Revisalas y cambiá a approved sólo las que quieras usar.`);
+  await ideaProposalRepository.save(proposal);
+  console.log(`\n${ideas.length} propuestas guardadas en SQLite, batch ${proposal.id}`);
+  for (const idea of ideas) console.log(`  [${idea.id}] ${idea.question}`);
+  console.log(`\nEl Brand Brain no fue modificado.`);
+  console.log(`Para promover propuestas revisadas: npm run ideas:promote -- ${proposal.id} [ideaId ...]`);
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 });

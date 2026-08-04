@@ -1,25 +1,14 @@
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-import { readData, writeData } from "../lib/data.js";
-import type { ReelScript } from "../types/reel-script.js";
+import { reelScriptRepository } from "../repositories/operational-repository.js";
 
 async function listScripts() {
-  const dir = path.resolve(process.cwd(), "data", "reel-scripts");
-  let files: string[];
-  try {
-    files = await readdir(dir);
-  } catch {
-    files = [];
-  }
+  const scripts = await reelScriptRepository.list();
   console.log("Uso: npm run scripts:approve <id> [--reject]\n");
-  if (files.length === 0) {
-    console.log("No hay guiones en data/reel-scripts/. Corré `npm run generate:script -- <contentBriefId>` primero.");
+  if (scripts.length === 0) {
+    console.log("No hay guiones. Corré `npm run generate:script -- <contentBriefId>` primero.");
     return;
   }
   console.log("Guiones disponibles:");
-  for (const file of files) {
-    if (!file.endsWith(".json")) continue;
-    const script = await readData<ReelScript>(`reel-scripts/${file}`);
+  for (const script of scripts) {
     console.log(`  [${script.status}] ${script.id}  (${script.brandPillar}) "${script.hook}"`);
   }
 }
@@ -32,7 +21,7 @@ async function main() {
   }
 
   const reject = process.argv.includes("--reject");
-  const script = await readData<ReelScript>(`reel-scripts/${id}.json`);
+  const script = await reelScriptRepository.get(id);
   if (script.status === "published") {
     console.log(
       `El guion ${id} ya fue publicado el ${script.publishedAt} (media ${script.publishedMediaId}) — no se puede aprobar/rechazar un guion publicado.`
@@ -40,7 +29,7 @@ async function main() {
     return;
   }
   script.status = reject ? "rejected" : "approved";
-  await writeData(`reel-scripts/${id}.json`, script);
+  await reelScriptRepository.save(script);
   console.log(`Guion ${id} ${reject ? "rechazado" : "aprobado"}: "${script.hook}"`);
 }
 

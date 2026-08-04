@@ -5,7 +5,10 @@ import { randomUUID } from "node:crypto";
 import { getBrand } from "../lib/brand.js";
 import { loadBrandBrainFoundation, loadBrandBrainReelExamples } from "../lib/brand-brain.js";
 import { loadLatestTrendReport } from "../lib/trend-report.js";
-import { readData, writeData } from "../lib/data.js";
+import {
+  contentBriefRepository,
+  reelScriptRepository,
+} from "../repositories/operational-repository.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
 import type { ContentBrief } from "../types/content-brief.js";
 import type { ReelBeat, ReelScript } from "../types/reel-script.js";
@@ -234,10 +237,20 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ContentBrief>(`content-briefs/${id}.json`);
+  const brief = await contentBriefRepository.get(id);
   if (brief.status !== "approved") {
     console.log(`El brief ${id} todavía está en status "${brief.status}". Corré \`npm run briefs:approve ${id}\` primero.`);
     return;
+  }
+  if (
+    !brief.ideaId ||
+    !brief.sourceArticleId ||
+    !brief.sourceArticleSlug ||
+    !brief.brandBrainRevision
+  ) {
+    throw new Error(
+      `El brief ${id} no tiene procedencia completa del Brand Brain. Regeneralo desde una idea aprobada antes de crear un guion.`
+    );
   }
   if (brief.reelScriptId) {
     console.log(`El brief ${id} ya tiene un guion generado (${brief.reelScriptId}).`);
@@ -273,6 +286,10 @@ async function main() {
     createdAt: new Date().toISOString(),
     status: "pending_review",
     contentBriefId: brief.id,
+    ideaId: brief.ideaId,
+    sourceArticleId: brief.sourceArticleId,
+    sourceArticleSlug: brief.sourceArticleSlug,
+    brandBrainRevision: brief.brandBrainRevision,
     brandPillar: brief.brandPillar,
     editorialTerritory: brief.editorialTerritory,
     hook: brief.hook,
@@ -280,12 +297,12 @@ async function main() {
     inspiredBy: [],
     ...parsed,
   };
-  await writeData(`reel-scripts/${script.id}.json`, script);
+  await reelScriptRepository.save(script);
 
   brief.reelScriptId = script.id;
-  await writeData(`content-briefs/${brief.id}.json`, brief);
+  await contentBriefRepository.save(brief);
 
-  console.log(`\nGuion guardado en data/reel-scripts/${script.id}.json`);
+  console.log(`\nGuion guardado en SQLite: reel_script/${script.id}`);
 }
 
 main().catch((err) => {

@@ -1,25 +1,14 @@
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-import { readData, writeData } from "../lib/data.js";
-import type { ContentBrief } from "../types/content-brief.js";
+import { contentBriefRepository } from "../repositories/operational-repository.js";
 
 async function listBriefs() {
-  const dir = path.resolve(process.cwd(), "data", "content-briefs");
-  let files: string[];
-  try {
-    files = await readdir(dir);
-  } catch {
-    files = [];
-  }
+  const briefs = await contentBriefRepository.list();
   console.log("Uso: npm run briefs:approve <id> [--reject]\n");
-  if (files.length === 0) {
-    console.log("No hay content briefs en data/content-briefs/. Corré `npm run generate:briefs` primero.");
+  if (briefs.length === 0) {
+    console.log("No hay content briefs. Corré `npm run generate:briefs` primero.");
     return;
   }
   console.log("Content briefs disponibles:");
-  for (const file of files) {
-    if (!file.endsWith(".json")) continue;
-    const brief = await readData<ContentBrief>(`content-briefs/${file}`);
+  for (const brief of briefs) {
     console.log(`  [${brief.status}] ${brief.id}  (${brief.brandPillar}) "${brief.hook}"`);
   }
 }
@@ -32,9 +21,9 @@ async function main() {
   }
 
   const reject = process.argv.includes("--reject");
-  const brief = await readData<ContentBrief>(`content-briefs/${id}.json`);
+  const brief = await contentBriefRepository.get(id);
   brief.status = reject ? "rejected" : "approved";
-  await writeData(`content-briefs/${id}.json`, brief);
+  await contentBriefRepository.save(brief);
   console.log(`Content brief ${id} ${reject ? "rechazado" : "aprobado"}: "${brief.hook}"`);
 }
 

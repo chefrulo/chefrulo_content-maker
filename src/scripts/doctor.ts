@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { config } from "dotenv";
 import { findClaudePath } from "../lib/claude-path.js";
 
@@ -79,10 +79,36 @@ if (cloudflared) {
   add(INFO, "Phase 6 (publish)", "cloudflared not found — install it to publish (no VPS needed)");
 }
 
-if (process.env.BRAND_BRAIN_PATH && existsSync(`${process.env.BRAND_BRAIN_PATH}/knowledge/00-foundation`)) {
-  add(CHECK, "Brand Brain", process.env.BRAND_BRAIN_PATH);
+if (
+  process.env.BRAND_BRAIN_PATH &&
+  existsSync(`${process.env.BRAND_BRAIN_PATH}/knowledge/00-foundation`) &&
+  existsSync(`${process.env.BRAND_BRAIN_PATH}/knowledge/20-articles`) &&
+  existsSync(`${process.env.BRAND_BRAIN_PATH}/knowledge/15-idea-library`)
+) {
+  let dirty = "";
+  try {
+    dirty = execFileSync(
+      "git",
+      ["-C", process.env.BRAND_BRAIN_PATH, "status", "--porcelain", "--untracked-files=all"],
+      { stdio: ["ignore", "pipe", "ignore"] }
+    ).toString().trim();
+  } catch {
+    dirty = "unable-to-read-git-status";
+  }
+  add(
+    dirty ? INFO : CHECK,
+    "Brand Brain",
+    dirty
+      ? `${process.env.BRAND_BRAIN_PATH} (uncommitted changes block editorial generation)`
+      : process.env.BRAND_BRAIN_PATH
+  );
 } else {
-  add(INFO, "Brand Brain", "not configured — briefs will skip editorial guardrails (set BRAND_BRAIN_PATH)");
+  add(
+    FAIL,
+    "Brand Brain",
+    "not configured or incomplete — set BRAND_BRAIN_PATH to a valid clone",
+    true
+  );
 }
 
 const labelWidth = Math.max(...checks.map((c) => c.label.length));

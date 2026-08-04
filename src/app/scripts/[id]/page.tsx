@@ -88,6 +88,18 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
+      <section className="rounded-lg border border-border bg-surface p-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Linaje editorial</h2>
+        <dl className="grid gap-1 text-xs sm:grid-cols-[9rem_1fr]">
+          <dt className="text-muted-foreground">Artículo</dt>
+          <dd className="font-mono">{brief.sourceArticleId} ({brief.sourceArticleSlug})</dd>
+          <dt className="text-muted-foreground">Idea</dt>
+          <dd className="font-mono">{brief.ideaId}</dd>
+          <dt className="text-muted-foreground">Brand Brain</dt>
+          <dd className="font-mono" title={brief.brandBrainRevision}>{brief.brandBrainRevision.slice(0, 12)}</dd>
+        </dl>
+      </section>
+
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Beats ({brief.beats.length})

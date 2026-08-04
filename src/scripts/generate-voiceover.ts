@@ -4,10 +4,10 @@ config({ path: ".env.local" });
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { Input, FilePathSource, ALL_FORMATS } from "mediabunny";
-import { readData, writeData } from "../lib/data.js";
+import { writeData } from "../lib/data.js";
+import { reelScriptRepository } from "../repositories/operational-repository.js";
 import { generateSpeechClip } from "../lib/openai-tts.js";
 import { findRecordedBeatFile } from "../lib/beat-recording.js";
-import type { ReelScript } from "../types/reel-script.js";
 import type { VoiceoverTimeline, VoiceoverBeat } from "../types/voiceover.js";
 
 function isFinitePositiveNumber(value: unknown): value is number {
@@ -42,7 +42,7 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelScript>(`reel-scripts/${id}.json`);
+  const brief = await reelScriptRepository.get(id);
   if (brief.status !== "approved") {
     console.log(
       `El brief ${id} todavía está en status "${brief.status}". Corré \`npm run scripts:approve ${id}\` primero.`

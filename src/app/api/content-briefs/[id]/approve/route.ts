@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readData, writeData } from "@/lib/data";
-import type { ContentBrief } from "@/types/content-brief";
+import { contentBriefRepository } from "@/repositories/operational-repository";
 
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const brief = await readData<ContentBrief>(`content-briefs/${id}.json`);
+  const brief = await contentBriefRepository.get(id);
   brief.status = "approved";
-  await writeData(`content-briefs/${id}.json`, brief);
+  await contentBriefRepository.save(brief);
   return NextResponse.json({ brief });
 }

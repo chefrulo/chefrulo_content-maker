@@ -6,8 +6,8 @@ import { mkdir, symlink } from "node:fs/promises";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { getBrand } from "../lib/brand.js";
-import { readData, readDataSafe } from "../lib/data.js";
-import type { ReelScript } from "../types/reel-script.js";
+import { readDataSafe } from "../lib/data.js";
+import { reelScriptRepository } from "../repositories/operational-repository.js";
 import type { Edl } from "../types/edl.js";
 import type { VoiceoverTimeline } from "../types/voiceover.js";
 import type { ReelCompositionProps, RenderBeat } from "../remotion/ReelComposition.js";
@@ -19,7 +19,7 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelScript>(`reel-scripts/${id}.json`);
+  const brief = await reelScriptRepository.get(id);
   if (brief.status !== "approved") {
     console.log(
       `El brief ${id} todavía está en status "${brief.status}". Corré \`npm run scripts:approve ${id}\` primero.`

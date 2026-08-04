@@ -9,6 +9,10 @@ export interface ReelScript {
   id: string;
   createdAt: string;
   contentBriefId: string;
+  ideaId: string;
+  sourceArticleId: string;
+  sourceArticleSlug: string;
+  brandBrainRevision: string;
   brandPillar: string;
   editorialTerritory: string;
   topic: string;

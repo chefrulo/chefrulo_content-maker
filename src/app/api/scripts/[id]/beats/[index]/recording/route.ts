@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
-import { readData } from "@/lib/data";
+import { reelScriptRepository } from "@/repositories/operational-repository";
 import {
   voiceoverDir,
   findRecordedBeatFile,
@@ -22,7 +22,7 @@ async function loadScriptAndValidateBeat(
 
   let script: ReelScript;
   try {
-    script = await readData<ReelScript>(`reel-scripts/${id}.json`);
+    script = await reelScriptRepository.get(id);
   } catch {
     return { error: "Script not found", status: 404 };
   }

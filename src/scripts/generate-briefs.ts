@@ -1,17 +1,11 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { readdir } from "node:fs/promises";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getBrand } from "../lib/brand.js";
-import {
-  loadBrandBrainArticle,
-  loadBrandBrainFoundation,
-  loadBrandBrainReelExamples,
-} from "../lib/brand-brain.js";
+import { brandBrainGateway } from "../lib/brand-brain.js";
 import { loadAllIdeas, loadApprovedIdeas, type LibraryIdea } from "../lib/idea-library.js";
-import { readDataSafe, writeData } from "../lib/data.js";
+import { contentBriefRepository } from "../repositories/operational-repository.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
 import type { ContentBrief } from "../types/content-brief.js";
 
@@ -78,20 +72,8 @@ function validateContentBriefShape(parsed: unknown, raw: string): ContentBriefFi
 }
 
 async function loadUsedIdeaIds(): Promise<Set<string>> {
-  const dir = path.resolve(process.cwd(), "data", "content-briefs");
-  let files: string[];
-  try {
-    files = await readdir(dir);
-  } catch {
-    return new Set();
-  }
-
   const used = new Set<string>();
-  for (const file of files) {
-    if (!file.endsWith(".json")) continue;
-    const brief = await readDataSafe<ContentBrief | null>(`content-briefs/${file}`, null);
-    if (brief) used.add(brief.ideaId);
-  }
+  for (const brief of await contentBriefRepository.list()) used.add(brief.ideaId);
   return used;
 }
 
@@ -187,8 +169,11 @@ async function main() {
     return;
   }
 
-  const brandBrain = await loadBrandBrainFoundation();
-  const reelExamples = await loadBrandBrainReelExamples();
+  const [brandBrainRevision, brandBrain, reelExamples] = await Promise.all([
+    brandBrainGateway.getRevision(),
+    brandBrainGateway.loadFoundation(),
+    brandBrainGateway.loadReelExamples(),
+  ]);
   const pillarNames = brand.pillars.map((p) => p.name);
   if (pillarNames.length === 0) {
     throw new Error(
@@ -202,7 +187,10 @@ async function main() {
   for (let i = 0; i < selected.length; i++) {
     const idea = selected[i]!;
     const brandPillar = pillarNames[i % pillarNames.length]!;
-    const canonicalArticle = await loadBrandBrainArticle(idea.articleSlug);
+    const canonicalArticle = await brandBrainGateway.loadApprovedArticle(
+      idea.articleSlug,
+      idea.sourceArticleId
+    );
     const prompt = buildPrompt(brand, idea, canonicalArticle, brandPillar, brandBrain, reelExamples);
     const { result } = await runClaudeAgent({ prompt, maxBudgetUsd: 0.3, name: "chefrulo-content-brief-generator" });
 
@@ -228,14 +216,15 @@ async function main() {
       ideaText: idea.ideaText,
       sourceArticleId: idea.sourceArticleId,
       sourceArticleSlug: idea.articleSlug,
+      brandBrainRevision,
       brandPillar,
       ...parsed,
     };
-    await writeData(`content-briefs/${brief.id}.json`, brief);
-    console.log(`  [${brief.brandPillar}] "${brief.hook}" -> data/content-briefs/${brief.id}.json`);
+    await contentBriefRepository.save(brief);
+    console.log(`  [${brief.brandPillar}] "${brief.hook}" -> SQLite content_brief/${brief.id}`);
   }
 
-  console.log(`\n${selected.length} briefs guardados en data/content-briefs/, status: pending_review.`);
+  console.log(`\n${selected.length} briefs guardados en SQLite, status: pending_review.`);
 }
 
 main().catch((err) => {

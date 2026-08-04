@@ -1,6 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readData } from "../lib/data.js";
-import type { ReelScript } from "../types/reel-script.js";
+import { reelScriptRepository } from "../repositories/operational-repository.js";
 
 function runStep(label: string, npmScript: string, args: string[]): void {
   console.log(`\n=== ${label} ===`);
@@ -18,7 +17,7 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelScript>(`reel-scripts/${id}.json`);
+  const brief = await reelScriptRepository.get(id);
   if (brief.status !== "approved") {
     console.log(
       `El brief ${id} está en status "${brief.status}", no "approved". Corré \`npm run scripts:approve ${id}\` primero.`

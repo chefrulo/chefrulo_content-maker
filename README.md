@@ -59,15 +59,25 @@ npm run generate:trend-report
 
 Asks Claude to analyse the scraped reels for what's working — top hook patterns, formats, average duration, CTA and emotional patterns, posting frequency, saturated topics, emerging opportunities — and writes `data/trend-reports/<date>.json`. Steps 1–2 together: `npm run pipeline:research`.
 
-### 3. Generate ideas from a canonical article (CLI-only, do this before using the dashboard)
+### 3a. Generate idea proposals from a canonical article
 
 ```bash
 npm run generate:ideas -- <article-slug>
 ```
 
-Reads `knowledge/20-articles/<article-slug>.md` from the Brand Brain repo and asks Claude to propose 8–12 channel-neutral ideas grounded only in that article. Each proposal includes a question, core insight and reason it matters, and is appended to `knowledge/15-idea-library/<article-slug>.md` with a stable ID and `review` status. A human must change an idea to `approved` before it can generate a brief. Requires `BRAND_BRAIN_PATH` — there is no degraded mode.
+Reads the committed canonical article and asks Claude to propose 8–12 channel-neutral ideas. The proposal batch is stored in SQLite with the source article hash and Brand Brain commit. This command never modifies Brand Brain.
 
-> **This step is not exposed as a dashboard button.** The web UI's "Correr research" button only runs steps 1–2, and "Generar briefs desde Idea Library" only runs step 4. Before that button can create anything, run `generate:ideas` for at least one article and review the resulting Markdown by changing selected ideas from `Status: review` to `Status: approved`. If the library is empty or has no approved ideas, brief generation exits without calling Claude and explains what needs review.
+Brand Brain must have a clean Git working tree so the proposal can record a reproducible revision.
+
+### 3b. Promote reviewed proposals explicitly
+
+```bash
+npm run ideas:promote -- <proposalId> [ideaId ...]
+```
+
+Promotes all pending ideas in a batch, or only the listed IDs, to the matching Brand Brain Idea Library. Promotion verifies that the canonical article has not changed since generation and writes each selected idea with `Status: review`. Review the Brand Brain diff, change only accepted entries to `approved`, then commit it. This is the only Content Maker command authorised to write editorial knowledge.
+
+> **Idea generation and promotion are CLI-only.** The dashboard generates briefs only from committed Idea Library entries whose status is already `approved`.
 
 ### 4. Generate content briefs from the idea library
 
@@ -75,7 +85,7 @@ Reads `knowledge/20-articles/<article-slug>.md` from the Brand Brain repo and as
 npm run generate:briefs
 ```
 
-Reads unused ideas with `Status: approved` from `knowledge/15-idea-library/`. For each one it reloads the corresponding canonical article, then asks Claude to create an abstract `ContentBrief` with a hook, core message, cultural insight, optional grounded personal story, educational value and CTA. The saved brief preserves the idea ID and source article ID/slug. No beats are created yet; this is not a video script. Also requires `BRAND_BRAIN_PATH`.
+Reads unused ideas with `Status: approved` from `knowledge/15-idea-library/`. For each one it reloads the corresponding canonical article, then asks Claude to create an abstract `ContentBrief`. The brief is stored in SQLite and preserves the idea ID, source article ID/slug and exact Brand Brain commit. Generation refuses uncommitted Brand Brain changes. No beats are created yet; this is not a video script.
 
 ### 5. Approve a content brief
 
@@ -91,7 +101,7 @@ Approving a `ContentBrief` doesn't produce video — it marks a reusable editori
 npm run generate:script -- <contentBriefId>
 ```
 
-Takes an *approved* `ContentBrief` and asks Claude to produce the beat-by-beat `ReelScript` (visual / voiceover / on-screen text per beat), written to `data/reel-scripts/<id>.json`. This optionally reads the most recent trend report, but only for presentation-style enrichment — hook phrasing, pacing, CTA style. It never touches topic, which is already fixed by the brief; research improves how a script says something, never what it says.
+Takes an *approved* `ContentBrief` and asks Claude to produce the beat-by-beat `ReelScript` (visual / voiceover / on-screen text per beat), stored in SQLite. This optionally reads the most recent trend report, but only for presentation-style enrichment — hook phrasing, pacing, CTA style. It never touches topic, which is already fixed by the brief; research improves how a script says something, never what it says.
 
 ### 7. Approve the script
 
@@ -127,7 +137,8 @@ Each pipeline stage is also its own command, in case you want to rerun just one:
 ```bash
 npm run scrape:inspiration               # 1. scrape inspiration accounts
 npm run generate:trend-report            # 2. build a trend report from the scrape
-npm run generate:ideas -- <slug>         # 3. article -> idea library (CLI-only, Brand Brain repo)
+npm run generate:ideas -- <slug>         # 3a. article -> proposal batch in SQLite
+npm run ideas:promote -- <batch> [ids]   # 3b. explicit proposal -> Brand Brain review entries
 npm run generate:briefs                  # 4. idea library -> ContentBrief[]
 npm run briefs:approve <id>              # 5. approve/reject a ContentBrief
 npm run generate:script -- <id>          # 6. approved ContentBrief -> ReelScript
@@ -153,15 +164,14 @@ npm run test:ig-insights    # non-interactive sanity check against your real IG 
 
 ## Data layout
 
-All local, all gitignored except explicit `.example` templates. Everything under `data/` is produced by the Editorial Content Engine or Research Intelligence; the idea library lives outside this repo, in the Brand Brain repo at `BRAND_BRAIN_PATH`.
+All local and gitignored except explicit `.example` templates. Operational workflow state uses SQLite; generated snapshots and media remain files. Legacy brief/script/proposal JSON is imported without deletion by `npm run migrate:sqlite`.
 
 ```text
 data/brand.json                  brand + commercial brand pillars (seeded by npm run setup)
+data/content-maker.sqlite        idea proposals, ContentBriefs and ReelScripts
 data/inspiration-accounts.json   handles to scrape (see inspiration-accounts.example.json)
 data/inspiration-reels/          scraped reel data per handle
 data/trend-reports/<date>.json   trend report from generate:trend-report
-data/content-briefs/<id>.json    abstract ContentBriefs (pending_review → approved → rejected)
-data/reel-scripts/<id>.json      beat-by-beat ReelScripts (pending_review → approved → published → rejected)
 data/voiceovers/<id>/            TTS audio per beat + timeline.json
 data/edl/<id>.json               beat → footage/text-card mapping
 data/exports/<id>.mp4            final rendered video
@@ -186,4 +196,4 @@ What's left before this is fully in day-to-day use:
 - **No background music yet** — no royalty-free tracks are wired in.
 - **No caption/hashtag generation** — publish captions are just `hook + cta`; can be extended if you want fuller Instagram captions.
 - **No feedback loop** — content briefs are grounded in the Brand Brain's idea library, never in inspiration-account performance (that's the whole point of the split — see the ADR); there's also no loop yet feeding Chef Rulo's own post history/insights back into idea or brief generation, even though the MCP tools for that are already wired up.
-- **Idea review is file-based** — `generate:ideas` is CLI-only and new entries stay in `review`; approve selected ideas in the Brand Brain Markdown before using the dashboard's brief generator.
+- **Idea review is file-based** — proposal generation and explicit promotion are CLI-only; promoted entries stay in `review` until accepted and committed in Brand Brain.

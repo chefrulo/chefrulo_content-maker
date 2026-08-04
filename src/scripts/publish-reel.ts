@@ -4,7 +4,7 @@ loadEnv({ path: ".env.local" });
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
-import { readData, writeData } from "../lib/data.js";
+import { reelScriptRepository } from "../repositories/operational-repository.js";
 import { publishReel, type PublishConfig } from "../lib/publish-reel.js";
 import type { ReelScript } from "../types/reel-script.js";
 
@@ -46,7 +46,7 @@ async function main() {
     return;
   }
 
-  const brief = await readData<ReelScript>(`reel-scripts/${id}.json`);
+  const brief = await reelScriptRepository.get(id);
 
   if (brief.status === "published" && !force) {
     console.log(
@@ -95,7 +95,7 @@ async function main() {
     publishedMediaId: result.mediaId,
     publishedVideoUrl: result.videoUrl,
   };
-  await writeData(`reel-scripts/${id}.json`, updated);
+  await reelScriptRepository.save(updated);
 
   console.log(`\nPublicado. Media ID: ${result.mediaId}`);
 }

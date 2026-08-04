@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
-import { readData } from "@/lib/data";
+import { reelScriptRepository } from "@/repositories/operational-repository";
 import type { ReelScript } from "@/types/reel-script";
 
 export const runtime = "nodejs";
@@ -45,7 +45,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
   let script: ReelScript;
   try {
-    script = await readData<ReelScript>(`reel-scripts/${id}.json`);
+    script = await reelScriptRepository.get(id);
   } catch {
     return new Response("Not found", { status: 404 });
   }

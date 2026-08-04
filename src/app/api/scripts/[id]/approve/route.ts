@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readData, writeData } from "@/lib/data";
-import type { ReelScript } from "@/types/reel-script";
+import { reelScriptRepository } from "@/repositories/operational-repository";
 
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const brief = await readData<ReelScript>(`reel-scripts/${id}.json`);
+  const brief = await reelScriptRepository.get(id);
   if (brief.status === "published") {
     return NextResponse.json(
       {
@@ -14,6 +13,6 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     );
   }
   brief.status = "approved";
-  await writeData(`reel-scripts/${id}.json`, brief);
+  await reelScriptRepository.save(brief);
   return NextResponse.json({ brief });
 }
