@@ -20,6 +20,7 @@ interface PipelineRunnerProps {
   initialSteps: string[];
   onSuccess?: () => void;
   disabled?: boolean;
+  confirmMessage?: string;
 }
 
 export function PipelineRunner({
@@ -31,6 +32,7 @@ export function PipelineRunner({
   initialSteps,
   onSuccess,
   disabled,
+  confirmMessage,
 }: PipelineRunnerProps) {
   const [steps, setSteps] = useState<StepState[]>(
     initialSteps.map((label) => ({ label, status: "pending" }))
@@ -41,6 +43,7 @@ export function PipelineRunner({
   const logRef = useRef<HTMLDivElement>(null);
 
   const run = useCallback(async () => {
+    if (confirmMessage && !window.confirm(confirmMessage)) return;
     setIsRunning(true);
     setErrorMsg(null);
     setLogs([]);
@@ -103,7 +106,7 @@ export function PipelineRunner({
     } finally {
       setIsRunning(false);
     }
-  }, [url, body, initialSteps, onSuccess]);
+  }, [url, body, initialSteps, onSuccess, confirmMessage]);
 
   return (
     <div className="space-y-3">

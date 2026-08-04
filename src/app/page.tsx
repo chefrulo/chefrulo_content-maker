@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { BookOpenCheck } from "lucide-react";
 import { ContentBriefCard } from "@/components/ContentBriefCard";
+import { BriefIdeaSelector } from "@/components/BriefIdeaSelector";
 import { ScriptCard } from "@/components/ScriptCard";
 import { PipelineRunner } from "@/components/PipelineRunner";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ export default function DashboardPage() {
         </Button>
       </header>
 
-      <section className="mb-10 flex flex-wrap gap-3">
+      <section className="mb-6 flex flex-wrap gap-3">
         <PipelineRunner
           url="/api/research"
           triggerLabel="Correr research"
@@ -76,13 +77,10 @@ export default function DashboardPage() {
           initialSteps={["Scrape", "Trend report"]}
           onSuccess={load}
         />
-        <PipelineRunner
-          url="/api/content-briefs/generate"
-          triggerLabel="Generar briefs desde Idea Library"
-          runningLabel="Generando briefs…"
-          initialSteps={["Briefs"]}
-          onSuccess={load}
-        />
+      </section>
+
+      <section className="mb-10">
+        <BriefIdeaSelector onGenerated={load} />
       </section>
 
       {loading && <p className="text-sm text-muted-foreground">Cargando…</p>}

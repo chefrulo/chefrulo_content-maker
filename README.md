@@ -88,10 +88,10 @@ Approvals require a clean Brand Brain working tree. If writing or committing fai
 ### 4. Generate content briefs from the idea library
 
 ```bash
-npm run generate:briefs
+npm run generate:briefs -- --idea=<idea-id> [--idea=<idea-id> ...]
 ```
 
-Reads unused ideas with `Status: approved` from `knowledge/15-idea-library/`. For each one it reloads the corresponding canonical article, then asks Claude to create an abstract `ContentBrief`. The brief is stored in SQLite and preserves the idea ID, source article ID/slug and exact Brand Brain commit. Generation refuses uncommitted Brand Brain changes. No beats are created yet; this is not a video script.
+Generates briefs only for the explicitly selected, unused ideas with `Status: approved`. The dashboard presents those ideas grouped by article and supports individual or select-all choice. The old implicit first-five batch no longer exists. For each selection the generator reloads the corresponding canonical article, then asks Claude to create an abstract `ContentBrief`. With the current `claude.ai` Pro authentication this consumes the shared Claude Pro allowance, not separately billed Anthropic API usage. The brief is stored in SQLite and preserves the idea ID, source article ID/slug and exact Brand Brain commit. Generation refuses uncommitted Brand Brain changes and revalidates availability immediately before using Claude. No beats are created yet; this is not a video script and does not invoke OpenAI TTS.
 
 ### 5. Approve a content brief
 
@@ -134,7 +134,7 @@ npm run publish:reel <reelScriptId>
 npm run dev
 ```
 
-Opens a dashboard at `localhost:3000`. **Brand Brain Review** (`/brand-brain`) approves canonical articles and selected ideas with an automatic local Git commit. The main dashboard has two pipeline triggers: "Correr research" (steps 1–2) and "Generar briefs desde Idea Library" (step 4). Two sections below, each grouped by status with its own detail page: **Briefs** (`/content-briefs/[id]`, approve/reject a `ContentBrief` and trigger script generation) and **Guiones** (`/scripts/[id]`, approve/reject a `ReelScript`, produce it — streamed — preview the video, and publish, still gated behind typing `publicar` in an input before the publish button enables). Idea generation and proposal promotion remain CLI-only. Reuses the UI components and Tailwind theme from [Open Carrusel](https://github.com/Hainrixz/open-carrusel).
+Opens a dashboard at `localhost:3000`. **Brand Brain Review** (`/brand-brain`) approves canonical articles and selected ideas with an automatic local Git commit. The main dashboard runs research and presents all approved ideas that still lack a brief; choose specific ideas or select all and confirm generation with Claude Pro. Two sections below, each grouped by status with its own detail page: **Briefs** (`/content-briefs/[id]`, approve/reject a `ContentBrief` and trigger script generation) and **Guiones** (`/scripts/[id]`, approve/reject a `ReelScript`, produce it — streamed — preview the video, and publish, still gated behind typing `publicar` in an input before the publish button enables). Idea generation and proposal promotion remain CLI-only. OpenAI API usage begins only when generating voiceover audio. Reuses the UI components and Tailwind theme from [Open Carrusel](https://github.com/Hainrixz/open-carrusel).
 
 ## Individual steps
 
@@ -145,7 +145,7 @@ npm run scrape:inspiration               # 1. scrape inspiration accounts
 npm run generate:trend-report            # 2. build a trend report from the scrape
 npm run generate:ideas -- <slug>         # 3a. article -> proposal batch in SQLite
 npm run ideas:promote -- <batch> [ids]   # 3b. explicit proposal -> Brand Brain review entries
-npm run generate:briefs                  # 4. idea library -> ContentBrief[]
+npm run generate:briefs -- --idea=<id>   # 4. selected idea(s) -> ContentBrief[]
 npm run briefs:approve <id>              # 5. approve/reject a ContentBrief
 npm run generate:script -- <id>          # 6. approved ContentBrief -> ReelScript
 npm run scripts:approve <id>             # 7. approve/reject a ReelScript

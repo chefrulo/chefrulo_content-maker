@@ -4,12 +4,19 @@ config({ path: ".env.local" });
 import { randomUUID } from "node:crypto";
 import { getBrand } from "../lib/brand.js";
 import { brandBrainGateway } from "../lib/brand-brain.js";
-import { loadAllIdeas, loadApprovedIdeas, type LibraryIdea } from "../lib/idea-library.js";
+import { type LibraryIdea } from "../lib/idea-library.js";
+import {
+  loadAvailableBriefIdeas,
+  parseRequestedIdeaArgs,
+  selectRequestedIdeas,
+} from "../lib/brief-idea-selection.js";
 import { contentBriefRepository } from "../repositories/operational-repository.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
 import type { ContentBrief } from "../types/content-brief.js";
 
-const BRIEFS_PER_RUN = 5;
+// Claude CLI guardrail. With the current claude.ai Pro authentication this
+// limits usage within the subscription; it is not an estimated per-brief bill.
+const CLAUDE_BUDGET_GUARD_USD = 0.3;
 
 type ContentBriefFields = Pick<
   ContentBrief,
@@ -69,12 +76,6 @@ function validateContentBriefShape(parsed: unknown, raw: string): ContentBriefFi
   };
   if (p.personalStory !== undefined) brief.personalStory = p.personalStory as string;
   return brief;
-}
-
-async function loadUsedIdeaIds(): Promise<Set<string>> {
-  const used = new Set<string>();
-  for (const brief of await contentBriefRepository.list()) used.add(brief.ideaId);
-  return used;
 }
 
 function buildPrompt(
@@ -146,28 +147,9 @@ async function main() {
   }
 
   const brand = await getBrand();
-  const allIdeas = await loadAllIdeas();
-  if (allIdeas.length === 0) {
-    console.log(
-      "No hay ideas en knowledge/15-idea-library/ del Brand Brain. Corré `npm run generate:ideas -- <slug-articulo>` primero."
-    );
-    return;
-  }
-
-  const approvedIdeas = await loadApprovedIdeas();
-  if (approvedIdeas.length === 0) {
-    console.log(
-      `Hay ${allIdeas.length} ideas en la librería, pero ninguna está aprobada. Cambiá **Status:** a approved después de revisarlas.`
-    );
-    return;
-  }
-
-  const usedIdeaIds = await loadUsedIdeaIds();
-  const unusedIdeas = approvedIdeas.filter((idea) => !usedIdeaIds.has(idea.ideaId));
-  if (unusedIdeas.length === 0) {
-    console.log("Todas las ideas de la librería ya tienen un Content Brief. Agregá más ideas con `npm run generate:ideas`.");
-    return;
-  }
+  const requestedIds = parseRequestedIdeaArgs(process.argv.slice(2));
+  const availableIdeas = await loadAvailableBriefIdeas();
+  const selected = selectRequestedIdeas(availableIdeas, requestedIds);
 
   const [brandBrainRevision, brandBrain, reelExamples] = await Promise.all([
     brandBrainGateway.getRevision(),
@@ -180,9 +162,7 @@ async function main() {
       "data/brand.json tiene pillars: [] — no hay brand pillars para asignar a los briefs. Agregá al menos uno."
     );
   }
-  const selected = unusedIdeas.slice(0, BRIEFS_PER_RUN);
-
-  console.log(`Generando ${selected.length} briefs desde la Idea Library (${unusedIdeas.length} ideas sin usar disponibles)...`);
+  console.log(`Generando ${selected.length} briefs seleccionados (${availableIdeas.length} ideas aprobadas sin usar disponibles)...`);
 
   for (let i = 0; i < selected.length; i++) {
     const idea = selected[i]!;
@@ -192,7 +172,11 @@ async function main() {
       idea.sourceArticleId
     );
     const prompt = buildPrompt(brand, idea, canonicalArticle, brandPillar, brandBrain, reelExamples);
-    const { result } = await runClaudeAgent({ prompt, maxBudgetUsd: 0.3, name: "chefrulo-content-brief-generator" });
+    const { result } = await runClaudeAgent({
+      prompt,
+      maxBudgetUsd: CLAUDE_BUDGET_GUARD_USD,
+      name: "chefrulo-content-brief-generator",
+    });
 
     let text = result.trim();
     const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
