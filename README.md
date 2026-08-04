@@ -105,6 +105,8 @@ Approving a `ContentBrief` marks a reusable editorial asset as ready for channel
 
 Open an approved brief and choose **Crear carrusel**. The carousel inherits the brief's idea, article and exact Brand Brain revision. Claude designs structured slide operations using the visual tokens in `data/brand.json`; generated HTML is validated before an atomic SQLite update and Claude receives no Bash access. The editor supports iterative chat, aspect ratio, ordering, undo, approval and PNG/ZIP export. Exported ZIP artifacts are stored under `data/exports/carousels/` as well as downloaded by the browser.
 
+See [`docs/architecture/carousel-generation.md`](docs/architecture/carousel-generation.md) for the complete prompt construction, Claude response contract, validation rules, session lifecycle and rendering architecture.
+
 ### 6. Generate a reel script from an approved brief
 
 ```bash

@@ -1,5 +1,10 @@
 # Carousel Treatment design
 
+> This document records the original design decisions. For the implemented
+> runtime flow, exact Claude contract, validation rules and current
+> limitations, see
+> [`docs/architecture/carousel-generation.md`](../architecture/carousel-generation.md).
+
 ## Problem
 
 Content Maker only produces one channel treatment from an approved
