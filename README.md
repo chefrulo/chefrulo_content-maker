@@ -9,7 +9,7 @@ The system is split into two independent engines: a **Research Intelligence** en
 - Node 20+
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 - [`cloudflared`](https://github.com/cloudflare/cloudflared) on PATH — only needed for step 8 (produce and publish)
-- A local clone of the `chef-rulo-brand-brain` repo, with `BRAND_BRAIN_PATH` pointing at it — required for idea and brief generation, see "Brand Brain" below
+- A local clone of the [`chef-rulo-brand-brain`](https://github.com/chefrulo/chef-rulo-brand-brain) repo, with `BRAND_BRAIN_PATH` pointing at it — required for idea and brief generation, see "Brand Brain" below
 - Accounts/tokens: Meta (Instagram Graph API), Apify, OpenAI — `npm run doctor` tells you what's missing
 
 ## Setup
@@ -24,7 +24,7 @@ Fill in `.env.local` (copied from `.env.example`) as each step below needs it.
 
 ## Brand Brain (required)
 
-`chef-rulo-brand-brain` (separate local repo, e.g. `/home/eduardo/dev/chef-rulo-brand-brain`) is the canonical source of truth for everything the Editorial Content Engine writes: positioning, editorial manifesto, British-English writing style, non-negotiable guardrails (no claims of cultural superiority, no "authentic" as an unsupported verdict, no stereotypes, no generalising a single household as all of Argentina), canonical articles, and the idea library. Point `BRAND_BRAIN_PATH` in `.env.local` at a local clone of that repo — `npm run generate:ideas` and `npm run generate:briefs` both require it and refuse to run without it; there is no degraded/no-guardrails mode any more. `npm run doctor` checks that it's set and that the repo looks right.
+[`chef-rulo-brand-brain`](https://github.com/chefrulo/chef-rulo-brand-brain) (separate local repo, e.g. `/home/eduardo/dev/chef-rulo-brand-brain`) is the canonical source of truth for everything the Editorial Content Engine writes: positioning, editorial manifesto, British-English writing style, non-negotiable guardrails (no claims of cultural superiority, no "authentic" as an unsupported verdict, no stereotypes, no generalising a single household as all of Argentina), canonical articles, and the idea library. Point `BRAND_BRAIN_PATH` in `.env.local` at a local clone of that repo — `npm run generate:ideas` and `npm run generate:briefs` both require it and refuse to run without it; there is no degraded/no-guardrails mode any more. `npm run doctor` checks that it's set and that the repo looks right.
 
 That repo also defines **editorial territories** (`knowledge/10-editorial-territories/`, e.g. "Argentine Cooking Techniques", "Family Memory") and the **idea library** (`knowledge/15-idea-library/`, one Markdown file per canonical article, e.g. `knowledge/15-idea-library/asado.md`) — concrete subject-matter areas and the permanent bank of reel-idea questions generated from each canonical article, a different axis from this repo's commercial **brand pillars** (`data/brand.json`, e.g. Product & Craft, Culture & Identity). Every content brief tags both a brand pillar and an editorial territory, plus a specific `topic` and a `contentPattern` (the structural pattern used, e.g. "Cultural Doorway"):
 
