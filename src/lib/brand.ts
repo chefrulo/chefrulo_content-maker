@@ -1,5 +1,5 @@
-import { readDataSafe, writeData } from "./data.js";
-import type { ReelsBrand } from "../types/brand.js";
+import { readDataSafe, writeData } from "./data";
+import type { ReelsBrand } from "../types/brand";
 
 const FILENAME = "brand.json";
 
@@ -88,12 +88,24 @@ export const DEFAULT_BRAND: ReelsBrand = {
     "Emotional branding",
     "Authority + Identity",
   ],
+  visualDesign: {
+    colors: {
+      primary: "#2b1810",
+      secondary: "#7a6b5f",
+      accent: "#e94560",
+      background: "#faf7f5",
+      surface: "#ffffff",
+    },
+    fonts: { heading: "Playfair Display", body: "Inter" },
+    styleKeywords: ["warm", "editorial", "tactile", "unpretentious"],
+  },
   createdAt: "",
   updatedAt: "",
 };
 
 export async function getBrand(): Promise<ReelsBrand> {
-  return readDataSafe<ReelsBrand>(FILENAME, DEFAULT_BRAND);
+  const brand = await readDataSafe<ReelsBrand>(FILENAME, DEFAULT_BRAND);
+  return { ...brand, visualDesign: brand.visualDesign ?? DEFAULT_BRAND.visualDesign };
 }
 
 export async function saveBrand(brand: ReelsBrand): Promise<void> {

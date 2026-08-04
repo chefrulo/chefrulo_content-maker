@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import crossSpawn from "cross-spawn";
-import { getClaudePath } from "./claude-path.js";
+import { getClaudePath } from "./claude-path";
 
 export interface RunClaudeAgentOptions {
   prompt: string;

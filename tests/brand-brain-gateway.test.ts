@@ -29,6 +29,7 @@ test("gateway returns committed content and rejects a dirty Brand Brain", async 
   assert.match(context.revision, /^[0-9a-f]{40}$/);
   assert.match(context.canonicalArticle, /article-asado/);
   assert.match(context.foundation, /Manifesto/);
+  assert.match(await gateway.loadFoundationAtRevision(context.revision), /Manifesto/);
   assert.match(await gateway.loadApprovedArticle("asado", "article-asado"), /# Asado/);
 
   await writeFile(path.join(root, "knowledge", "20-articles", "asado.md"), "# Changed\n");

@@ -6,10 +6,12 @@ import { BookOpenCheck } from "lucide-react";
 import { ContentBriefCard } from "@/components/ContentBriefCard";
 import { BriefIdeaSelector } from "@/components/BriefIdeaSelector";
 import { ScriptCard } from "@/components/ScriptCard";
+import { CarouselCard } from "@/components/CarouselCard";
 import { PipelineRunner } from "@/components/PipelineRunner";
 import { Button } from "@/components/ui/button";
 import type { ContentBrief } from "@/types/content-brief";
 import type { ReelScript } from "@/types/reel-script";
+import type { CarouselTreatment } from "@/types/carousel";
 
 const BRIEF_STATUS_ORDER: ContentBrief["status"][] = ["pending_review", "approved", "rejected"];
 const BRIEF_STATUS_TITLE: Record<ContentBrief["status"], string> = {
@@ -29,14 +31,19 @@ const SCRIPT_STATUS_TITLE: Record<ReelScript["status"], string> = {
 export default function DashboardPage() {
   const [briefs, setBriefs] = useState<ContentBrief[]>([]);
   const [scripts, setScripts] = useState<ReelScript[]>([]);
+  const [carousels, setCarousels] = useState<CarouselTreatment[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [briefsRes, scriptsRes] = await Promise.all([fetch("/api/content-briefs"), fetch("/api/scripts")]);
-    const briefsData = await briefsRes.json();
-    const scriptsData = await scriptsRes.json();
+    const [briefsRes, scriptsRes, carouselsRes] = await Promise.all([
+      fetch("/api/content-briefs"), fetch("/api/scripts"), fetch("/api/carousels"),
+    ]);
+    const [briefsData, scriptsData, carouselsData] = await Promise.all([
+      briefsRes.json(), scriptsRes.json(), carouselsRes.json(),
+    ]);
     setBriefs(briefsData.briefs);
     setScripts(scriptsData.briefs); // /api/scripts still returns { briefs } for now, see Task 13
+    setCarousels(carouselsData.carousels ?? []);
     setLoading(false);
   }, []);
 
@@ -116,6 +123,13 @@ export default function DashboardPage() {
           </div>
         </section>
       ))}
+
+      {carousels.length > 0 && <section className="mb-10">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Carruseles ({carousels.length})</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {carousels.map((carousel) => <CarouselCard key={carousel.id} carousel={carousel} />)}
+        </div>
+      </section>}
     </main>
   );
 }

@@ -85,8 +85,9 @@ interface CarouselTreatment {
 }
 ```
 
-Persisted at `data/carousels/<id>.json`, same atomic `readData`/`writeData`
-pattern already used everywhere in `data/`.
+Persisted as `carousel_treatment` operational entities in `data/content-maker.sqlite`,
+matching the hybrid-storage ADR. Rendered PNG/ZIP artifacts live under
+`data/exports/carousels/`; canonical editorial knowledge remains in Brand Brain.
 
 `ReelsBrand` (`src/types/brand.ts`) gets an additive `visualDesign` section:
 palette (5 colors, matching Open Carrusel's primary/secondary/accent/
@@ -125,10 +126,10 @@ New dependencies: `puppeteer`, `sharp`, `archiver`, `@dnd-kit/core`,
    (voice, guardrails) the same way `generate-script.ts` already includes
    it — so a carousel can't drift off-brand just because it's a visual
    medium instead of a spoken one.
-3. Slide creation mechanism is unchanged from Open Carrusel: Claude writes
-   full HTML/CSS for a slide and calls the app's own
-   `POST /api/carousels/[id]/slides` via the `Bash` tool (curl), rather than
-   a custom tool-use function. Proven, not redesigned.
+3. Claude returns validated structured slide operations (`add`, `update`,
+   `delete`). Content Maker applies the complete operation batch atomically.
+   Claude does not receive Bash access, reducing capability without reducing
+   the editor's creative workflow.
 4. `POST /api/carousels/[id]/chat` streams the response as SSE (same
    pattern `PipelineRunner` already uses for streamed steps, just consumed
    by a chat panel instead of a progress bar).

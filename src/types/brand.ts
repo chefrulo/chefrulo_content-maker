@@ -16,6 +16,18 @@ export interface ReelsBrand {
   pillars: ContentPillar[];
   ctaStyles: string[];
   contentGoals: string[];
+  visualDesign: {
+    colors: {
+      primary: string;
+      secondary: string;
+      accent: string;
+      background: string;
+      surface: string;
+    };
+    fonts: { heading: string; body: string };
+    logoPath?: string;
+    styleKeywords: string[];
+  };
   createdAt: string;
   updatedAt: string;
 }

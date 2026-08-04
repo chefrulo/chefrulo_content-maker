@@ -95,6 +95,21 @@ export class BrandBrainGateway {
     return article;
   }
 
+  async loadFoundationAtRevision(revision: string): Promise<string> {
+    if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error("Invalid Brand Brain revision");
+    const brainPath = this.requirePath();
+    const tree = await execFileAsync("git", [
+      "-C", brainPath, "ls-tree", "-r", "--name-only", revision, "--", FOUNDATION_SUBDIR,
+    ]);
+    const files = tree.stdout.split(/\r?\n/).filter((file) => file.endsWith(".md")).sort();
+    if (files.length === 0) throw new Error(`Brand Brain foundation is empty at ${revision}`);
+    const sections = await Promise.all(files.map(async (file) => {
+      const result = await execFileAsync("git", ["-C", brainPath, "show", `${revision}:${file}`]);
+      return result.stdout;
+    }));
+    return sections.join("\n\n---\n\n");
+  }
+
   async getRevision(): Promise<string> {
     const brainPath = this.requirePath();
     let revision: string;

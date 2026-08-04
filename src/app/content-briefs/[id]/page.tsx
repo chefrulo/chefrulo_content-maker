@@ -2,21 +2,29 @@
 
 import { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PipelineRunner } from "@/components/PipelineRunner";
 import type { ContentBrief } from "@/types/content-brief";
+import type { CarouselTreatment } from "@/types/carousel";
 
 export default function ContentBriefDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const [brief, setBrief] = useState<ContentBrief | null>(null);
+  const [carousels, setCarousels] = useState<CarouselTreatment[]>([]);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/content-briefs/${id}`);
+    const [res, carouselRes] = await Promise.all([
+      fetch(`/api/content-briefs/${id}`),
+      fetch(`/api/content-briefs/${id}/carousels`),
+    ]);
     if (!res.ok) return;
-    const data = await res.json();
+    const [data, carouselData] = await Promise.all([res.json(), carouselRes.json()]);
     setBrief(data.brief);
+    if (carouselRes.ok) setCarousels(carouselData.carousels);
   }, [id]);
 
   useEffect(() => {
@@ -35,6 +43,12 @@ export default function ContentBriefDetailPage({ params }: { params: Promise<{ i
   const setStatus = async (action: "approve" | "reject") => {
     await fetch(`/api/content-briefs/${id}/${action}`, { method: "POST" });
     load();
+  };
+
+  const createCarousel = async () => {
+    const response = await fetch(`/api/content-briefs/${id}/carousels`, { method: "POST" });
+    const data = await response.json();
+    if (response.ok) router.push(`/carousels/${data.carousel.id}`);
   };
 
   return (
@@ -124,6 +138,20 @@ export default function ContentBriefDetailPage({ params }: { params: Promise<{ i
               onSuccess={load}
             />
           )}
+        </section>
+      )}
+
+      {brief.status === "approved" && (
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Carruseles</h2>
+          {carousels.length > 0 && <div className="mb-3 space-y-2">{carousels.map((carousel) => (
+            <Link key={carousel.id} href={`/carousels/${carousel.id}`} className="block rounded-lg border border-border bg-surface p-3 text-sm hover:border-muted-foreground/40">
+              {carousel.name} · {carousel.slides.length} slides · {carousel.status}
+            </Link>
+          ))}</div>}
+          <Button variant="outline" onClick={() => void createCarousel()}>
+            {carousels.length > 0 ? "Crear otro carrusel" : "Crear carrusel"}
+          </Button>
         </section>
       )}
     </main>

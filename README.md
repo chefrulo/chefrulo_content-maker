@@ -1,8 +1,8 @@
 # chefrulo_content-maker
 
-Local-first Instagram Reels pipeline for Chef Rulo & Family, orchestrated with Claude Code. Same philosophy as [Open Carrusel](https://github.com/Hainrixz/open-carrusel) — everything runs on your machine, Claude CLI as a subprocess agent, no data leaves except to the APIs each step actually needs.
+Local-first editorial production system for Chef Rulo & Family, orchestrated with Claude Code. It turns approved briefs into reels or pixel-perfect Instagram carousels; everything runs on your machine and no data leaves except to the APIs each step actually needs.
 
-The system is split into two independent engines: a **Research Intelligence** engine that watches what's working on Instagram (and never generates content), and an **Editorial Content Engine** that turns the Chef Rulo Brand Brain into ideas, briefs, scripts, and finished reels (and never starts from influencer content). See `docs/decisions/2026-08-02-separate-research-from-content-creation.md` for the full rationale behind that split.
+The system is split into two independent engines: a **Research Intelligence** engine that watches what's working on Instagram (and never generates content), and an **Editorial Content Engine** that turns the Chef Rulo Brand Brain into ideas, briefs, reel scripts, carousels and finished assets (and never starts from influencer content). See `docs/decisions/2026-08-02-separate-research-from-content-creation.md` for the full rationale behind that split.
 
 ## Requirements
 
@@ -99,7 +99,11 @@ Generates briefs only for the explicitly selected, unused ideas with `Status: ap
 npm run briefs:approve <id>      # or with no id, to list all briefs
 ```
 
-Approving a `ContentBrief` doesn't produce video — it marks a reusable editorial asset as ready to become content. In principle an approved brief could become a reel, carousel, article, or newsletter; today this pipeline only builds reels from it.
+Approving a `ContentBrief` marks a reusable editorial asset as ready for channel treatment. It can currently become one reel script and any number of alternative carousel treatments.
+
+### 5a. Create a carousel treatment
+
+Open an approved brief and choose **Crear carrusel**. The carousel inherits the brief's idea, article and exact Brand Brain revision. Claude designs structured slide operations using the visual tokens in `data/brand.json`; generated HTML is validated before an atomic SQLite update and Claude receives no Bash access. The editor supports iterative chat, aspect ratio, ordering, undo, approval and PNG/ZIP export. Exported ZIP artifacts are stored under `data/exports/carousels/` as well as downloaded by the browser.
 
 ### 6. Generate a reel script from an approved brief
 
@@ -134,7 +138,7 @@ npm run publish:reel <reelScriptId>
 npm run dev
 ```
 
-Opens a dashboard at `localhost:3000`. **Brand Brain Review** (`/brand-brain`) approves canonical articles and selected ideas with an automatic local Git commit. The main dashboard runs research and presents all approved ideas that still lack a brief; choose specific ideas or select all and confirm generation with Claude Pro. Two sections below, each grouped by status with its own detail page: **Briefs** (`/content-briefs/[id]`, approve/reject a `ContentBrief` and trigger script generation) and **Guiones** (`/scripts/[id]`, approve/reject a `ReelScript`, produce it — streamed — preview the video, and publish, still gated behind typing `publicar` in an input before the publish button enables). Idea generation and proposal promotion remain CLI-only. OpenAI API usage begins only when generating voiceover audio. Reuses the UI components and Tailwind theme from [Open Carrusel](https://github.com/Hainrixz/open-carrusel).
+Opens a dashboard at `localhost:3000`. **Brand Brain Review** (`/brand-brain`) approves canonical articles and selected ideas with an automatic local Git commit. The main dashboard runs research and presents all approved ideas that still lack a brief; choose specific ideas or select all and confirm generation with Claude Pro. It then groups **Briefs**, **Guiones** and **Carruseles**. An approved brief can create either channel treatment; carousel editing stays local and exports a ZIP, while reel publishing remains gated behind typing `publicar`. Idea generation and proposal promotion remain CLI-only. OpenAI API usage begins only when generating voiceover audio.
 
 ## Individual steps
 
@@ -174,13 +178,14 @@ All local and gitignored except explicit `.example` templates. Operational workf
 
 ```text
 data/brand.json                  brand + commercial brand pillars (seeded by npm run setup)
-data/content-maker.sqlite        idea proposals, ContentBriefs and ReelScripts
+data/content-maker.sqlite        idea proposals, ContentBriefs, ReelScripts and CarouselTreatments
 data/inspiration-accounts.json   handles to scrape (see inspiration-accounts.example.json)
 data/inspiration-reels/          scraped reel data per handle
 data/trend-reports/<date>.json   trend report from generate:trend-report
 data/voiceovers/<id>/            TTS audio per beat + timeline.json
 data/edl/<id>.json               beat → footage/text-card mapping
 data/exports/<id>.mp4            final rendered video
+data/exports/carousels/<id>.zip  rendered carousel PNG bundle
 footage/<id>/                    your real clips for a reel script (you provide these)
 ```
 
@@ -193,7 +198,7 @@ knowledge/15-idea-library/<slug>.md   structured, channel-neutral ideas per arti
 
 ## Status
 
-The full research/content-engine split described in `docs/decisions/2026-08-02-separate-research-from-content-creation.md` is implemented: Research Intelligence (scrape → trend report) and the Editorial Content Engine (idea library → content briefs → reel scripts → produce → publish) run as separate stages, each with its own data files and its own approval gate. Verified with real data/credentials, except the actual Graph API publish call — that step is gated behind typing `publicar` and hasn't been run for a real post yet.
+The full research/content-engine split described in `docs/decisions/2026-08-02-separate-research-from-content-creation.md` is implemented: Research Intelligence (scrape → trend report) and the Editorial Content Engine (idea library → content briefs → reel scripts or carousel treatments) run as separate stages, each with its own persistence and approval gate. Verified with real data/credentials, except the actual Graph API publish call — that step is gated behind typing `publicar` and hasn't been run for a real post yet.
 
 What's left before this is fully in day-to-day use:
 
@@ -202,4 +207,3 @@ What's left before this is fully in day-to-day use:
 - **No background music yet** — no royalty-free tracks are wired in.
 - **No caption/hashtag generation** — publish captions are just `hook + cta`; can be extended if you want fuller Instagram captions.
 - **No feedback loop** — content briefs are grounded in the Brand Brain's idea library, never in inspiration-account performance (that's the whole point of the split — see the ADR); there's also no loop yet feeding Chef Rulo's own post history/insights back into idea or brief generation, even though the MCP tools for that are already wired up.
-- **Idea review is file-based** — proposal generation and explicit promotion are CLI-only; promoted entries stay in `review` until accepted and committed in Brand Brain.

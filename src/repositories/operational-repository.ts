@@ -5,8 +5,9 @@ import path from "node:path";
 import type { ContentBrief } from "../types/content-brief.js";
 import type { IdeaProposalBatch } from "../types/idea-proposal.js";
 import type { ReelScript } from "../types/reel-script.js";
+import type { CarouselTreatment } from "../types/carousel.js";
 
-type EntityType = "content_brief" | "reel_script" | "idea_proposal";
+type EntityType = "content_brief" | "reel_script" | "idea_proposal" | "carousel_treatment";
 
 interface OperationalEntity {
   id: string;
@@ -160,4 +161,8 @@ export const reelScriptRepository = new SqliteOperationalRepository<ReelScript>(
 export const ideaProposalRepository = new SqliteOperationalRepository<IdeaProposalBatch>(
   "idea_proposal",
   "idea-proposals"
+);
+export const carouselTreatmentRepository = new SqliteOperationalRepository<CarouselTreatment>(
+  "carousel_treatment",
+  "carousels"
 );
