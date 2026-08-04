@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import { BookOpenCheck } from "lucide-react";
 import { ContentBriefCard } from "@/components/ContentBriefCard";
 import { ScriptCard } from "@/components/ScriptCard";
 import { PipelineRunner } from "@/components/PipelineRunner";
+import { Button } from "@/components/ui/button";
 import type { ContentBrief } from "@/types/content-brief";
 import type { ReelScript } from "@/types/reel-script";
 
@@ -53,11 +56,16 @@ export default function DashboardPage() {
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold">Chef Rulo — Reels Pipeline</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Research → briefs → guion → producción → publicación, todo local.
-        </p>
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Chef Rulo — Reels Pipeline</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Research → briefs → guion → producción → publicación, todo local.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/brand-brain"><BookOpenCheck className="h-4 w-4" /> Revisar Brand Brain</Link>
+        </Button>
       </header>
 
       <section className="mb-10 flex flex-wrap gap-3">

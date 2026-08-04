@@ -24,7 +24,7 @@ Git owns:
 - Editorial patterns.
 - Source and asset metadata.
 
-Content Maker reads this repository through `BrandBrainGateway`. Generating ideas does not write to Brand Brain. It creates an operational proposal batch. Only the explicit `ideas:promote` command may add selected proposals to an Idea Library file, and promoted entries still begin in `review`.
+Content Maker reads this repository through the read-only `BrandBrainGateway`. Generating ideas does not write to Brand Brain; it creates an operational proposal batch. The explicit `ideas:promote` command may add selected proposals to an Idea Library file, and promoted entries still begin in `review`. A separate `BrandBrainEditorialService` owns the approval boundary: it may change reviewed articles and ideas to `approved`, but only from a clean working tree and only by creating an atomic, auditable local Git commit.
 
 Every generated Content Brief records the exact Brand Brain commit. Generation refuses a dirty Brand Brain working tree because an uncommitted source cannot be reproduced from its Git revision.
 

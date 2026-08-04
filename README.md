@@ -75,9 +75,15 @@ Brand Brain must have a clean Git working tree so the proposal can record a repr
 npm run ideas:promote -- <proposalId> [ideaId ...]
 ```
 
-Promotes all pending ideas in a batch, or only the listed IDs, to the matching Brand Brain Idea Library. Promotion verifies that the canonical article has not changed since generation and writes each selected idea with `Status: review`. Review the Brand Brain diff, change only accepted entries to `approved`, then commit it. This is the only Content Maker command authorised to write editorial knowledge.
+Promotes all pending ideas in a batch, or only the listed IDs, to the matching Brand Brain Idea Library. Promotion verifies that the canonical article has not changed since generation and writes each selected idea with `Status: review`.
 
-> **Idea generation and promotion are CLI-only.** The dashboard generates briefs only from committed Idea Library entries whose status is already `approved`.
+### 3c. Review and approve canonical knowledge
+
+Open `/brand-brain` from the dashboard. The review screen shows every canonical article alongside its Idea Library. Select the article and only the ideas you want to approve, then confirm the operation. Content Maker validates the selection, updates the Markdown files atomically and creates one local Git commit in Brand Brain. It never pushes that commit automatically.
+
+Approvals require a clean Brand Brain working tree. If writing or committing fails, both Markdown files and the Git index are restored. Retired ideas cannot be approved from this workflow.
+
+> **Idea generation and proposal promotion are CLI-only.** Canonical article and idea approval is available in the dashboard. Brief generation uses only committed articles and Idea Library entries whose status is `approved`.
 
 ### 4. Generate content briefs from the idea library
 
@@ -128,7 +134,7 @@ npm run publish:reel <reelScriptId>
 npm run dev
 ```
 
-Opens a dashboard at `localhost:3000` — same underlying pipeline, no CLI needed, for everything except step 3 (see the callout above — `generate:ideas` must be run from the terminal). Two trigger buttons: "Correr research" (steps 1–2) and "Generar briefs desde Idea Library" (step 4). Two sections below, each grouped by status with its own detail page: **Briefs** (`/content-briefs/[id]`, approve/reject a `ContentBrief` and trigger script generation) and **Guiones** (`/scripts/[id]`, approve/reject a `ReelScript`, produce it — streamed — preview the video, and publish, still gated behind typing `publicar` in an input before the publish button enables). Reuses the UI components and Tailwind theme from [Open Carrusel](https://github.com/Hainrixz/open-carrusel).
+Opens a dashboard at `localhost:3000`. **Brand Brain Review** (`/brand-brain`) approves canonical articles and selected ideas with an automatic local Git commit. The main dashboard has two pipeline triggers: "Correr research" (steps 1–2) and "Generar briefs desde Idea Library" (step 4). Two sections below, each grouped by status with its own detail page: **Briefs** (`/content-briefs/[id]`, approve/reject a `ContentBrief` and trigger script generation) and **Guiones** (`/scripts/[id]`, approve/reject a `ReelScript`, produce it — streamed — preview the video, and publish, still gated behind typing `publicar` in an input before the publish button enables). Idea generation and proposal promotion remain CLI-only. Reuses the UI components and Tailwind theme from [Open Carrusel](https://github.com/Hainrixz/open-carrusel).
 
 ## Individual steps
 
