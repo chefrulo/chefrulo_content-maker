@@ -5,8 +5,12 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getBrand } from "../lib/brand.js";
-import { loadBrandBrainFoundation, loadBrandBrainReelExamples } from "../lib/brand-brain.js";
-import { loadAllIdeas } from "../lib/idea-library.js";
+import {
+  loadBrandBrainArticle,
+  loadBrandBrainFoundation,
+  loadBrandBrainReelExamples,
+} from "../lib/brand-brain.js";
+import { loadAllIdeas, loadApprovedIdeas, type LibraryIdea } from "../lib/idea-library.js";
 import { readDataSafe, writeData } from "../lib/data.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
 import type { ContentBrief } from "../types/content-brief.js";
@@ -93,7 +97,8 @@ async function loadUsedIdeaIds(): Promise<Set<string>> {
 
 function buildPrompt(
   brand: Awaited<ReturnType<typeof getBrand>>,
-  ideaText: string,
+  idea: LibraryIdea,
+  canonicalArticle: string,
   brandPillar: string,
   brandBrain: string | null,
   reelExamples: string | null
@@ -121,8 +126,16 @@ ${brandBrainBlock}${reelExamplesBlock}## Brand
 - Tone: ${brand.toneKeywords.join(", ")}
 - Target audience: ${brand.targetAudience}
 
-## The idea to develop
-"${ideaText}"
+## Approved canonical article — factual and cultural source of truth
+${canonicalArticle}
+
+---
+
+## Approved idea to develop
+- ID: ${idea.ideaId}
+- Question: ${idea.ideaText}
+- Core insight: ${idea.coreInsight}
+${idea.whyItMatters ? `- Why it matters: ${idea.whyItMatters}\n` : ""}- Source article: ${idea.sourceArticleId}
 
 ## Brand pillar for this piece
 ${brandPillar}
@@ -159,8 +172,16 @@ async function main() {
     return;
   }
 
+  const approvedIdeas = await loadApprovedIdeas();
+  if (approvedIdeas.length === 0) {
+    console.log(
+      `Hay ${allIdeas.length} ideas en la librería, pero ninguna está aprobada. Cambiá **Status:** a approved después de revisarlas.`
+    );
+    return;
+  }
+
   const usedIdeaIds = await loadUsedIdeaIds();
-  const unusedIdeas = allIdeas.filter((idea) => !usedIdeaIds.has(idea.ideaId));
+  const unusedIdeas = approvedIdeas.filter((idea) => !usedIdeaIds.has(idea.ideaId));
   if (unusedIdeas.length === 0) {
     console.log("Todas las ideas de la librería ya tienen un Content Brief. Agregá más ideas con `npm run generate:ideas`.");
     return;
@@ -181,7 +202,8 @@ async function main() {
   for (let i = 0; i < selected.length; i++) {
     const idea = selected[i]!;
     const brandPillar = pillarNames[i % pillarNames.length]!;
-    const prompt = buildPrompt(brand, idea.ideaText, brandPillar, brandBrain, reelExamples);
+    const canonicalArticle = await loadBrandBrainArticle(idea.articleSlug);
+    const prompt = buildPrompt(brand, idea, canonicalArticle, brandPillar, brandBrain, reelExamples);
     const { result } = await runClaudeAgent({ prompt, maxBudgetUsd: 0.3, name: "chefrulo-content-brief-generator" });
 
     let text = result.trim();
@@ -204,6 +226,8 @@ async function main() {
       status: "pending_review",
       ideaId: idea.ideaId,
       ideaText: idea.ideaText,
+      sourceArticleId: idea.sourceArticleId,
+      sourceArticleSlug: idea.articleSlug,
       brandPillar,
       ...parsed,
     };

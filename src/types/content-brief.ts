@@ -2,6 +2,8 @@ export interface ContentBrief {
   id: string;
   ideaId: string;
   ideaText: string;
+  sourceArticleId: string;
+  sourceArticleSlug: string;
   brandPillar: string;
   editorialTerritory: string;
   hook: string;

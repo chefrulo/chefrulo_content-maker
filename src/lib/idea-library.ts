@@ -1,26 +1,73 @@
-import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const IDEA_LIBRARY_SUBDIR = "knowledge/15-idea-library";
 
+export type IdeaStatus = "draft" | "review" | "approved" | "retired";
+
 export interface LibraryIdea {
   ideaId: string;
+  title: string;
   ideaText: string;
+  coreInsight: string;
+  whyItMatters?: string;
+  status: IdeaStatus;
+  signatureIdea: boolean;
+  sourceArticleId: string;
   articleSlug: string;
 }
 
-export function computeIdeaId(articleSlug: string, ideaText: string): string {
-  return createHash("sha1").update(`${articleSlug}::${ideaText}`).digest("hex").slice(0, 12);
+function readInlineField(block: string, label: string): string | undefined {
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return block.match(new RegExp(`^\\*\\*${escapedLabel}:\\*\\*\\s*(.+?)\\s*$`, "im"))?.[1]?.trim();
 }
 
-function parseIdeasFromMarkdown(articleSlug: string, markdown: string): LibraryIdea[] {
+function isIdeaStatus(value: string | undefined): value is IdeaStatus {
+  return value === "draft" || value === "review" || value === "approved" || value === "retired";
+}
+
+export function parseIdeasFromMarkdown(articleSlug: string, markdown: string): LibraryIdea[] {
   const ideas: LibraryIdea[] = [];
-  for (const line of markdown.split("\n")) {
-    const match = line.match(/^\s*-\s+(.+?)\s*$/);
-    if (!match?.[1]) continue;
-    const ideaText = match[1];
-    ideas.push({ ideaId: computeIdeaId(articleSlug, ideaText), ideaText, articleSlug });
+  const headingPattern = /^##\s+(idea-[a-z0-9-]+)\s+[—-]\s+(.+?)\s*$/gim;
+  const headings = [...markdown.matchAll(headingPattern)];
+
+  for (let index = 0; index < headings.length; index++) {
+    const heading = headings[index];
+    if (!heading || heading.index === undefined) continue;
+    const ideaId = heading[1]?.trim();
+    const title = heading[2]?.trim();
+    if (!ideaId || !title) continue;
+
+    const blockStart = heading.index + heading[0].length;
+    const blockEnd = headings[index + 1]?.index ?? markdown.length;
+    const block = markdown.slice(blockStart, blockEnd);
+    const status = readInlineField(block, "Status")?.toLowerCase();
+    const ideaText = readInlineField(block, "Question");
+    const coreInsight = readInlineField(block, "Core insight");
+    const sourceArticleId = readInlineField(block, "Source article");
+    const whyItMatters = readInlineField(block, "Why it matters");
+    const signatureIdea = readInlineField(block, "Signature idea")?.toLowerCase() === "yes";
+
+    const errors: string[] = [];
+    if (!isIdeaStatus(status)) errors.push("Status must be draft, review, approved or retired");
+    if (!ideaText) errors.push("Question is required");
+    if (!coreInsight) errors.push("Core insight is required");
+    if (!sourceArticleId) errors.push("Source article is required");
+    if (errors.length > 0) {
+      throw new Error(`${articleSlug}.md: invalid idea ${ideaId}: ${errors.join("; ")}`);
+    }
+
+    ideas.push({
+      ideaId,
+      title,
+      ideaText: ideaText!,
+      coreInsight: coreInsight!,
+      ...(whyItMatters ? { whyItMatters } : {}),
+      status: status as IdeaStatus,
+      signatureIdea,
+      sourceArticleId: sourceArticleId!,
+      articleSlug,
+    });
   }
   return ideas;
 }
@@ -44,4 +91,8 @@ export async function loadAllIdeas(): Promise<LibraryIdea[]> {
     all.push(...parseIdeasFromMarkdown(articleSlug, markdown));
   }
   return all;
+}
+
+export async function loadApprovedIdeas(): Promise<LibraryIdea[]> {
+  return (await loadAllIdeas()).filter((idea) => idea.status === "approved");
 }

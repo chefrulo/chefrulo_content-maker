@@ -26,7 +26,7 @@ Fill in `.env.local` (copied from `.env.example`) as each step below needs it.
 
 [`chef-rulo-brand-brain`](https://github.com/chefrulo/chef-rulo-brand-brain) (separate local repo, e.g. `/home/eduardo/dev/chef-rulo-brand-brain`) is the canonical source of truth for everything the Editorial Content Engine writes: positioning, editorial manifesto, British-English writing style, non-negotiable guardrails (no claims of cultural superiority, no "authentic" as an unsupported verdict, no stereotypes, no generalising a single household as all of Argentina), canonical articles, and the idea library. Point `BRAND_BRAIN_PATH` in `.env.local` at a local clone of that repo — `npm run generate:ideas` and `npm run generate:briefs` both require it and refuse to run without it; there is no degraded/no-guardrails mode any more. `npm run doctor` checks that it's set and that the repo looks right.
 
-That repo also defines **editorial territories** (`knowledge/10-editorial-territories/`, e.g. "Argentine Cooking Techniques", "Family Memory") and the **idea library** (`knowledge/15-idea-library/`, one Markdown file per canonical article, e.g. `knowledge/15-idea-library/asado.md`) — concrete subject-matter areas and the permanent bank of reel-idea questions generated from each canonical article, a different axis from this repo's commercial **brand pillars** (`data/brand.json`, e.g. Product & Craft, Culture & Identity). Every content brief tags both a brand pillar and an editorial territory, plus a specific `topic` and a `contentPattern` (the structural pattern used, e.g. "Cultural Doorway"):
+That repo also defines **editorial territories** (`knowledge/10-editorial-territories/`, e.g. "Argentine Cooking Techniques", "Family Memory") and the **idea library** (`knowledge/15-idea-library/`, one structured Markdown file per canonical article, e.g. `knowledge/15-idea-library/asado.md`). Ideas are channel-neutral editorial assets with stable IDs, a question, core insight, source article and review status. They are different from this repo's commercial **brand pillars** (`data/brand.json`, e.g. Product & Craft, Culture & Identity). Every content brief preserves its idea and canonical-article lineage while also receiving a brand pillar and editorial territory.
 
 ```json
 {
@@ -65,9 +65,9 @@ Asks Claude to analyse the scraped reels for what's working — top hook pattern
 npm run generate:ideas -- <article-slug>
 ```
 
-Reads `knowledge/20-articles/<article-slug>.md` from the Brand Brain repo and asks Claude to generate 8–12 concrete reel-idea questions grounded only in that article, appending the new ones to the permanent idea library at `knowledge/15-idea-library/<article-slug>.md` in the Brand Brain repo. Requires `BRAND_BRAIN_PATH` — there is no degraded mode, the command errors out without it.
+Reads `knowledge/20-articles/<article-slug>.md` from the Brand Brain repo and asks Claude to propose 8–12 channel-neutral ideas grounded only in that article. Each proposal includes a question, core insight and reason it matters, and is appended to `knowledge/15-idea-library/<article-slug>.md` with a stable ID and `review` status. A human must change an idea to `approved` before it can generate a brief. Requires `BRAND_BRAIN_PATH` — there is no degraded mode.
 
-> **This step is not exposed as a dashboard button.** The web UI's "Correr research" button only runs steps 1–2, and "Generar briefs desde Idea Library" only runs step 4. If you click both from a fresh checkout without ever running `generate:ideas` from the terminal, brief generation will report success (green checkmark, no error) but create zero new briefs — silently, because the idea library has nothing unused in it yet. You must run this command from the terminal, for at least one article slug, before the dashboard's brief-generation button will do anything useful.
+> **This step is not exposed as a dashboard button.** The web UI's "Correr research" button only runs steps 1–2, and "Generar briefs desde Idea Library" only runs step 4. Before that button can create anything, run `generate:ideas` for at least one article and review the resulting Markdown by changing selected ideas from `Status: review` to `Status: approved`. If the library is empty or has no approved ideas, brief generation exits without calling Claude and explains what needs review.
 
 ### 4. Generate content briefs from the idea library
 
@@ -75,7 +75,7 @@ Reads `knowledge/20-articles/<article-slug>.md` from the Brand Brain repo and as
 npm run generate:briefs
 ```
 
-Reads all unused ideas from `knowledge/15-idea-library/` across the Brand Brain repo and asks Claude to turn each into an abstract `ContentBrief` — hook, core message, cultural insight, optional personal story, educational value, CTA, plus a brand pillar, editorial territory, topic and content pattern (see Brand Brain above) — written to `data/content-briefs/<id>.json`. No beats yet; this is not a video script. Also requires `BRAND_BRAIN_PATH`.
+Reads unused ideas with `Status: approved` from `knowledge/15-idea-library/`. For each one it reloads the corresponding canonical article, then asks Claude to create an abstract `ContentBrief` with a hook, core message, cultural insight, optional grounded personal story, educational value and CTA. The saved brief preserves the idea ID and source article ID/slug. No beats are created yet; this is not a video script. Also requires `BRAND_BRAIN_PATH`.
 
 ### 5. Approve a content brief
 
@@ -171,8 +171,8 @@ footage/<id>/                    your real clips for a reel script (you provide 
 Outside this repo, in the Brand Brain repo:
 
 ```text
-knowledge/20-articles/<slug>.md       canonical articles (input to generate:ideas)
-knowledge/15-idea-library/<slug>.md   permanent bank of reel-idea questions per article
+knowledge/20-articles/<slug>.md       canonical articles (input to generate:ideas and generate:briefs)
+knowledge/15-idea-library/<slug>.md   structured, channel-neutral ideas per article (review → approved)
 ```
 
 ## Status
@@ -186,4 +186,4 @@ What's left before this is fully in day-to-day use:
 - **No background music yet** — no royalty-free tracks are wired in.
 - **No caption/hashtag generation** — publish captions are just `hook + cta`; can be extended if you want fuller Instagram captions.
 - **No feedback loop** — content briefs are grounded in the Brand Brain's idea library, never in inspiration-account performance (that's the whole point of the split — see the ADR); there's also no loop yet feeding Chef Rulo's own post history/insights back into idea or brief generation, even though the MCP tools for that are already wired up.
-- **`generate:ideas` is CLI-only** — see the callout in the Pipeline section above; it's not on the dashboard yet.
+- **Idea review is file-based** — `generate:ideas` is CLI-only and new entries stay in `review`; approve selected ideas in the Brand Brain Markdown before using the dashboard's brief generator.
