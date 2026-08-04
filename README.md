@@ -123,14 +123,17 @@ npm run scripts:approve <id>      # or with no id, to list all scripts
 
 Refuses to touch a script that's already `published`.
 
-### 8. Produce and publish
+### 8. Prepare, review, render and publish
 
 ```bash
 npm run pipeline:produce <reelScriptId>
+npm run render:reel <reelScriptId>       # after approving the EDL in the app
 npm run publish:reel <reelScriptId>
 ```
 
-`pipeline:produce` generates per-beat voiceover (OpenAI TTS), builds an EDL mapping beats to real footage in `footage/<reelScriptId>/` (falls back to brand-styled text cards for beats without footage), and renders the final MP4 to `data/exports/<reelScriptId>.mp4`. To use real footage: drop clips into `footage/<reelScriptId>/` before this step.
+`pipeline:produce` prepares the review checkpoint: it resolves recorded voice or OpenAI TTS, measures exact per-beat timing, creates three-frame visual contacts for clips in `footage/<reelScriptId>/`, and asks Claude to propose an EDL using those images, filenames and real durations. The EDL starts as a draft. Review clips and cuts in the reel screen, then approve it explicitly before rendering. Clips that are missing or shorter than the exact beat duration become clearly marked text-card fallbacks.
+
+After approval, `render:reel` uses the reviewed start/end cuts and exact voice timeline to create `data/exports/<reelScriptId>.mp4`. Publishing is blocked if that MP4 predates the current approved EDL. See [`docs/architecture/reel-production.md`](docs/architecture/reel-production.md) for the full timing, visual-analysis, review and safety contract.
 
 `publish:reel` needs no VPS: the Graph API needs a public HTTPS URL to fetch the video from, so this spins up a local HTTP server plus a [cloudflared](https://github.com/cloudflare/cloudflared) quick tunnel (no account/signup needed) just long enough for Meta's servers to download it, then tears both down. Requires `cloudflared` on PATH (`npm run doctor` checks for it). Requires typing `publicar` to confirm — this hits your real, public Instagram account.
 
@@ -140,7 +143,7 @@ npm run publish:reel <reelScriptId>
 npm run dev
 ```
 
-Opens a dashboard at `localhost:3000`. **Brand Brain Review** (`/brand-brain`) approves canonical articles and selected ideas with an automatic local Git commit. The main dashboard runs research and presents all approved ideas that still lack a brief; choose specific ideas or select all and confirm generation with Claude Pro. It then groups **Briefs**, **Guiones** and **Carruseles**. An approved brief can create either channel treatment; carousel editing stays local and exports a ZIP, while reel publishing remains gated behind typing `publicar`. Idea generation and proposal promotion remain CLI-only. OpenAI API usage begins only when generating voiceover audio.
+Opens a dashboard at `localhost:3000`. **Brand Brain Review** (`/brand-brain`) approves canonical articles and selected ideas with an automatic local Git commit. The main dashboard runs research and presents all approved ideas that still lack a brief; choose specific ideas or select all and confirm generation with Claude Pro. It then separates **Briefs editoriales**, **Reels · video** and **Carruseles · imágenes**. An approved brief can create either channel treatment. Reels have a voice → footage/EDL review → render workflow; carousel editing stays local and exports a ZIP. Reel publishing remains gated behind typing `publicar`. Idea generation and proposal promotion remain CLI-only. OpenAI API usage begins only when generating voiceover audio.
 
 ## Individual steps
 
@@ -156,12 +159,12 @@ npm run briefs:approve <id>              # 5. approve/reject a ContentBrief
 npm run generate:script -- <id>          # 6. approved ContentBrief -> ReelScript
 npm run scripts:approve <id>             # 7. approve/reject a ReelScript
 npm run generate:voiceover <id>          # 8a. TTS per beat
-npm run generate:edl <id>                # 8b. beat -> footage/text-card mapping
-npm run render:reel <id>                 # 8c. render the MP4
+npm run generate:edl <id>                # 8b. exact timing + visual footage -> draft EDL
+npm run render:reel <id>                 # 8c. render an approved EDL
 npm run publish:reel <id>                # 8d. publish to Instagram
 ```
 
-`pipeline:research` chains steps 1–2; `pipeline:produce <id>` chains 8a–8c.
+`pipeline:research` chains steps 1–2; `pipeline:produce <id>` chains 8a–8b and stops for human EDL review before 8c.
 
 ## Claude Code + MCP
 
@@ -204,7 +207,7 @@ The full research/content-engine split described in `docs/decisions/2026-08-02-s
 
 What's left before this is fully in day-to-day use:
 
-- **Real footage** — no clips exist yet, so every reel currently renders with text-card fallbacks. Drop clips into `footage/<reelScriptId>/` before `generate:edl` to use real video; sanity-check the AI-suggested trim points in `data/edl/<id>.json` before rendering, since Claude picks them from filenames/durations, not by watching the footage.
+- **Real footage** — no clips exist yet, so prepared reels currently propose text-card fallbacks. Drop clips into `footage/<reelScriptId>/` before preparing production. Claude inspects generated three-frame contact sheets as well as filenames, and every assignment/cut must be reviewed and approved in the application before rendering.
 - **First real publish** — run `npm run publish:reel <reelScriptId>` yourself when a video is ready; nothing publishes automatically.
 - **No background music yet** — no royalty-free tracks are wired in.
 - **No caption/hashtag generation** — publish captions are just `hook + cta`; can be extended if you want fuller Instagram captions.

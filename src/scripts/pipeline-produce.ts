@@ -25,14 +25,12 @@ async function main() {
     return;
   }
 
-  runStep("1/3 — Generando voiceover", "generate:voiceover", [id]);
-  runStep("2/3 — Armando EDL (footage o text cards)", "generate:edl", [id]);
-  runStep("3/3 — Renderizando video", "render:reel", [id]);
+  runStep("1/2 — Generando voz y tiempos reales", "generate:voiceover", [id]);
+  runStep("2/2 — Proponiendo montaje con footage", "generate:edl", [id]);
 
-  console.log(`\n=== CHECKPOINT: revisión del video final ===`);
-  console.log(`Mirá data/exports/${id}.mp4 antes de publicar.`);
-  console.log(`Cuando esté OK: npm run publish:reel ${id}`);
-  console.log(`(ese paso te va a pedir confirmación explícita antes de publicar de verdad)`);
+  console.log(`\n=== CHECKPOINT: revisión del montaje ===`);
+  console.log(`Abrí el guion en la aplicación, revisá los clips y cortes, y aprobá el EDL.`);
+  console.log(`Después podés renderizar el video final desde la misma pantalla.`);
 }
 
 main();

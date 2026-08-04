@@ -66,9 +66,9 @@ export default function DashboardPage() {
     <main className="max-w-5xl mx-auto px-6 py-10">
       <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Chef Rulo — Reels Pipeline</h1>
+          <h1 className="text-2xl font-bold">Chef Rulo — Content Maker</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Research → briefs → guion → producción → publicación, todo local.
+            Una base editorial, dos salidas claramente separadas: reels de video y carruseles de imágenes.
           </p>
         </div>
         <Button asChild variant="outline">
@@ -112,7 +112,8 @@ export default function DashboardPage() {
       ))}
 
       {groupedScripts.map((group) => (
-        <section key={`script-${group.status}`} className="mb-10">
+        <section key={`script-${group.status}`} className="mb-10 rounded-2xl border border-accent/20 bg-accent/[0.03] p-5">
+          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-accent">REELS · VIDEO</p>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             {SCRIPT_STATUS_TITLE[group.status]} ({group.items.length})
           </h2>
@@ -124,7 +125,8 @@ export default function DashboardPage() {
         </section>
       ))}
 
-      {carousels.length > 0 && <section className="mb-10">
+      {carousels.length > 0 && <section className="mb-10 rounded-2xl border border-border bg-muted/30 p-5">
+        <p className="mb-1 text-xs font-bold tracking-[0.18em] text-foreground">CARRUSELES · IMÁGENES</p>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Carruseles ({carousels.length})</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {carousels.map((carousel) => <CarouselCard key={carousel.id} carousel={carousel} />)}

@@ -98,7 +98,7 @@ export default function CarouselEditorPage({ params }: { params: Promise<{ id: s
   const slide = carousel.slides[active];
   return <main className="min-h-screen flex flex-col">
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-5 py-3">
-      <div className="flex items-center gap-3"><Link href="/" aria-label="Volver"><ArrowLeft className="h-4 w-4" /></Link><div><h1 className="font-semibold">{carousel.name}</h1><p className="text-xs text-muted-foreground">{carousel.editorialTerritory}</p></div><Badge variant={carousel.status === "approved" ? "success" : "warning"}>{carousel.status}</Badge></div>
+      <div className="flex items-center gap-3"><Link href="/" aria-label="Volver"><ArrowLeft className="h-4 w-4" /></Link><Badge variant="secondary" className="border border-border text-foreground">CARRUSEL · IMÁGENES</Badge><div><h1 className="font-semibold">{carousel.name}</h1><p className="text-xs text-muted-foreground">{carousel.editorialTerritory}</p></div><Badge variant={carousel.status === "approved" ? "success" : "warning"}>{carousel.status}</Badge></div>
       <div className="flex flex-wrap gap-2">
         {(["1:1", "4:5", "9:16"] as CarouselAspectRatio[]).map((ratio) => <Button key={ratio} size="sm" variant={carousel.aspectRatio === ratio ? "default" : "outline"} onClick={() => void patch({ aspectRatio: ratio })}>{ratio}</Button>)}
         <Button size="sm" variant="outline" onClick={() => void review("reject")}>Rechazar</Button>

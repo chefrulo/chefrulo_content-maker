@@ -11,6 +11,7 @@ export interface RenderBeat {
   kind: "clip" | "textcard";
   clipPath?: string;
   trimStartSeconds?: number;
+  trimEndSeconds?: number;
   onScreenText?: string;
   audioPath?: string;
 }
@@ -112,6 +113,7 @@ export function ReelComposition(props: ReelCompositionProps) {
               <OffthreadVideo
                 src={staticFile(beat.clipPath)}
                 trimBefore={Math.round((beat.trimStartSeconds ?? 0) * fps)}
+                trimAfter={beat.trimEndSeconds === undefined ? undefined : Math.round(beat.trimEndSeconds * fps)}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             ) : (

@@ -4,6 +4,7 @@ import type { CarouselTreatment } from "@/types/carousel";
 
 export function CarouselCard({ carousel }: { carousel: CarouselTreatment }) {
   return <Link href={`/carousels/${carousel.id}`} className="block rounded-lg border border-border bg-surface p-4 hover:border-muted-foreground/40">
+    <Badge variant="secondary" className="mb-3 border border-border text-foreground">CARRUSEL · IMÁGENES</Badge>
     <div className="flex flex-wrap gap-1.5 mb-2">
       <Badge variant={carousel.status === "approved" ? "success" : carousel.status === "rejected" ? "destructive" : "warning"}>{carousel.status}</Badge>
       <Badge variant="outline">{carousel.aspectRatio}</Badge>

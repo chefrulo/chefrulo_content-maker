@@ -6,9 +6,7 @@ export const maxDuration = 600;
 
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const stream = streamNpmScripts([
-    { label: "Voz y tiempos reales", args: ["generate:voiceover", "--", id] },
-    { label: "Selección de footage", args: ["generate:edl", "--", id] },
-  ]);
-  return sseResponse(stream);
+  return sseResponse(streamNpmScripts([
+    { label: "Render final", args: ["render:reel", "--", id] },
+  ]));
 }

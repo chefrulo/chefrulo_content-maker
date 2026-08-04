@@ -1,140 +1,131 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { readdir } from "node:fs/promises";
 import path from "node:path";
-import { getVideoMetadata } from "@remotion/renderer";
-import { writeData } from "../lib/data.js";
+import { writeData, readDataSafe } from "../lib/data.js";
 import { reelScriptRepository } from "../repositories/operational-repository.js";
 import { runClaudeAgent } from "../lib/claude-agent.js";
-import type { ReelScript } from "../types/reel-script.js";
-import type { Edl, EdlBeat } from "../types/edl.js";
+import { attachScriptPaths, listFootage, normalizeEdlAssignments, type EdlAssignmentInput } from "../lib/reel-edl.js";
+import type { Edl } from "../types/edl.js";
+import type { VoiceoverTimeline } from "../types/voiceover.js";
 
-const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".m4v"]);
-
-interface FootageClip {
-  filename: string;
-  durationSeconds: number;
-}
-
-async function listFootage(briefId: string): Promise<FootageClip[]> {
-  const dir = path.resolve(process.cwd(), "footage", briefId);
-  let files: string[];
-  try {
-    files = await readdir(dir);
-  } catch {
-    return [];
-  }
-
-  const clips: FootageClip[] = [];
-  for (const filename of files) {
-    if (!VIDEO_EXTENSIONS.has(path.extname(filename).toLowerCase())) continue;
-    const metadata = await getVideoMetadata(path.join(dir, filename));
-    clips.push({ filename, durationSeconds: metadata.durationInSeconds ?? 0 });
-  }
-  return clips;
-}
-
-interface ClaudeAssignment {
-  beatIndex: number;
-  filename: string | null;
-  trimStartSeconds: number;
-  trimEndSeconds: number;
-}
-
-function parseAssignments(raw: string): ClaudeAssignment[] {
+function parseAssignments(raw: string): EdlAssignmentInput[] {
   let text = raw.trim();
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenced?.[1]) text = fenced[1].trim();
   const start = text.indexOf("[");
   const end = text.lastIndexOf("]");
-  if (start === -1 || end === -1) {
-    throw new Error(`Could not find a JSON array in Claude's response:\n${raw}`);
-  }
-  return JSON.parse(text.slice(start, end + 1));
+  if (start === -1 || end === -1) throw new Error(`Could not find a JSON array in Claude's response:\n${raw}`);
+  const parsed: unknown = JSON.parse(text.slice(start, end + 1));
+  if (!Array.isArray(parsed)) throw new Error("Claude's EDL response is not an array");
+  return parsed.map((value, index) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`EDL assignment ${index} is invalid`);
+    const item = value as Record<string, unknown>;
+    if (!Number.isInteger(item.beatIndex)) throw new Error(`EDL assignment ${index} has an invalid beatIndex`);
+    if (item.filename !== null && typeof item.filename !== "string") throw new Error(`EDL assignment ${index} has an invalid filename`);
+    return {
+      beatIndex: item.beatIndex as number,
+      filename: item.filename as string | null,
+      trimStartSeconds: typeof item.trimStartSeconds === "number" ? item.trimStartSeconds : 0,
+      trimEndSeconds: typeof item.trimEndSeconds === "number" ? item.trimEndSeconds : undefined,
+    };
+  });
 }
 
-async function assignFootageToBeats(
-  brief: ReelScript,
-  clips: FootageClip[]
-): Promise<Map<number, ClaudeAssignment>> {
-  const beatsBlock = brief.beats
-    .map((b, i) => `${i}: "${b.visual}" (~${b.estimatedSeconds}s)`)
-    .join("\n");
-  const clipsBlock = clips
-    .map((c) => `- ${c.filename} (${c.durationSeconds.toFixed(1)}s)`)
-    .join("\n");
+async function assignFootage(
+  script: Awaited<ReturnType<typeof reelScriptRepository.get>>,
+  timeline: VoiceoverTimeline,
+  clips: Awaited<ReturnType<typeof listFootage>>
+): Promise<EdlAssignmentInput[]> {
+  const beatsBlock = script.beats.map((beat, index) => {
+    const timing = timeline.beats.find((item) => item.index === index);
+    if (!timing) throw new Error(`Missing voiceover timing for beat ${index}`);
+    return `${index}: Visual: "${beat.visual}"\n   Exact target duration: ${timing.durationSeconds.toFixed(2)}s`;
+  }).join("\n");
+  const clipsBlock = clips.map((clip) => [
+    `- ${clip.filename} (${clip.durationSeconds.toFixed(2)}s)`,
+    clip.contactSheetPath ? `  Visual contact sheet: ${path.resolve(process.cwd(), clip.contactSheetPath)}` : "  No contact sheet available; use the filename cautiously.",
+  ].join("\n")).join("\n");
 
-  const prompt = `You are editing a short Instagram Reel. Here are the shot descriptions for each beat:
+  const prompt = `You are editing a short Instagram Reel. Match real footage to every beat.
+
+BEATS — durations below come from the actual recorded or generated voiceover and are exact:
 ${beatsBlock}
 
-Here is the available real footage (filenames and their full duration):
+AVAILABLE FOOTAGE:
 ${clipsBlock}
 
-For each beat, pick the best-matching footage file (a file can be reused for multiple beats if needed), or null if nothing fits. Suggest a trim window (trimStartSeconds, trimEndSeconds) within that file's duration that roughly matches the beat's target length.
+Inspect every available contact-sheet image with the Read tool before choosing clips. Do not rely only on filenames when a contact sheet exists.
 
-Respond with ONLY a raw JSON array (no markdown fences, no prose), one item per beat, in beat order:
-[{ "beatIndex": 0, "filename": "<filename or null>", "trimStartSeconds": 0, "trimEndSeconds": 4 }]`;
+For each beat, choose the best-matching footage file, or null when nothing genuinely fits. A file may be reused. The chosen source clip must be at least as long as the beat's exact target duration. Pick trimStartSeconds so the complete target-duration window remains inside the source clip; trimEndSeconds must equal trimStartSeconds plus the exact target duration.
 
-  const { result } = await runClaudeAgent({ prompt, maxBudgetUsd: 0.3, name: "chefrulo-edl" });
+Respond with ONLY a raw JSON array, one item per beat in beat order:
+[{ "beatIndex": 0, "filename": "<exact filename or null>", "trimStartSeconds": 0, "trimEndSeconds": 4.25 }]`;
+
+  const { result } = await runClaudeAgent({
+    prompt,
+    allowedTools: ["Read"],
+    maxBudgetUsd: 0.3,
+    name: "chefrulo-edl",
+  });
   const assignments = parseAssignments(result);
-  return new Map(assignments.map((a) => [a.beatIndex, a]));
+  const indices = assignments.map((assignment) => assignment.beatIndex);
+  if (assignments.length !== script.beats.length || new Set(indices).size !== script.beats.length || indices.some((index) => index < 0 || index >= script.beats.length)) {
+    throw new Error("Claude debe devolver exactamente una asignación válida por cada beat.");
+  }
+  return assignments;
 }
 
 async function main() {
   const id = process.argv[2];
   if (!id) {
-    console.log("Uso: npm run generate:edl <briefId>");
+    console.log("Uso: npm run generate:edl <scriptId>");
     return;
   }
 
-  const brief = await reelScriptRepository.get(id);
-  if (brief.status !== "approved") {
-    console.log(
-      `El brief ${id} todavía está en status "${brief.status}". Corré \`npm run scripts:approve ${id}\` primero.`
-    );
-    return;
-  }
+  const script = await reelScriptRepository.get(id);
+  if (script.status !== "approved") throw new Error(`El guion ${id} debe estar aprobado antes de preparar el montaje.`);
 
-  const clips = await listFootage(id);
+  const timeline = await readDataSafe<VoiceoverTimeline | null>(`voiceovers/${id}/timeline.json`, null);
+  if (!timeline) throw new Error(`No hay timeline de voz para ${id}. Corré \`npm run generate:voiceover ${id}\` primero.`);
+  if (timeline.beats.length !== script.beats.length) throw new Error("La timeline de voz no coincide con los beats del guion.");
+
+  const clips = await listFootage(id, { createContactSheets: true });
   console.log(`Footage disponible para ${id}: ${clips.length} clips`);
+  const targetDurations = script.beats.map((_, index) => {
+    const timing = timeline.beats.find((beat) => beat.index === index);
+    if (!timing) throw new Error(`Missing voiceover timing for beat ${index}`);
+    return timing.durationSeconds;
+  });
 
-  let beats: EdlBeat[];
-
+  let assignments: EdlAssignmentInput[];
   if (clips.length === 0) {
-    console.log(
-      `No hay footage en footage/${id}/ todavía — armo el EDL con text cards para los ${brief.beats.length} beats. Agregá clips ahí y volvé a correr este script cuando los tengas.`
-    );
-    beats = brief.beats.map((_, index) => ({ index, kind: "textcard" as const }));
+    console.log(`No hay footage en footage/${id}/ — se proponen text cards para los ${script.beats.length} beats.`);
+    assignments = script.beats.map((_, beatIndex) => ({ beatIndex, filename: null }));
   } else {
-    const assignments = await assignFootageToBeats(brief, clips);
-    beats = brief.beats.map((_, index) => {
-      const assignment = assignments.get(index);
-      if (!assignment?.filename || !clips.some((c) => c.filename === assignment.filename)) {
-        return { index, kind: "textcard" as const };
-      }
-      return {
-        index,
-        kind: "clip" as const,
-        clipPath: path.join("footage", id, assignment.filename),
-        trimStartSeconds: assignment.trimStartSeconds,
-        trimEndSeconds: assignment.trimEndSeconds,
-      };
-    });
+    assignments = await assignFootage(script, timeline, clips);
   }
 
-  const edl: Edl = { briefId: id, generatedAt: new Date().toISOString(), beats };
+  const now = new Date().toISOString();
+  const beats = attachScriptPaths(id, normalizeEdlAssignments(assignments, targetDurations, clips));
+  const edl: Edl = {
+    briefId: id,
+    generatedAt: now,
+    updatedAt: now,
+    voiceoverGeneratedAt: timeline.generatedAt,
+    status: "draft",
+    footage: clips,
+    beats,
+  };
   await writeData(`edl/${id}.json`, edl);
 
   for (const beat of beats) {
-    console.log(
-      `  beat ${beat.index}: ${beat.kind}${beat.clipPath ? ` — ${beat.clipPath} [${beat.trimStartSeconds}s-${beat.trimEndSeconds}s]` : ""}`
-    );
+    console.log(`  beat ${beat.index}: ${beat.kind}${beat.filename ? ` — ${beat.filename} [${beat.trimStartSeconds?.toFixed(2)}s-${beat.trimEndSeconds?.toFixed(2)}s]` : ""}${beat.warning ? ` ⚠ ${beat.warning}` : ""}`);
   }
-  console.log(`\nEDL guardado en data/edl/${id}.json`);
+  console.log(`\nEDL guardado como borrador en data/edl/${id}.json. Revisalo y aprobalo desde la aplicación antes de renderizar.`);
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 });

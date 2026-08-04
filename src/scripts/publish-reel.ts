@@ -1,11 +1,13 @@
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local" });
 
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { reelScriptRepository } from "../repositories/operational-repository.js";
 import { publishReel, type PublishConfig } from "../lib/publish-reel.js";
+import { readDataSafe } from "../lib/data.js";
+import type { Edl } from "../types/edl.js";
 import type { ReelScript } from "../types/reel-script.js";
 
 const REQUIRED_ENV = ["IG_BUSINESS_ACCOUNT_ID", "IG_ACCESS_TOKEN"] as const;
@@ -65,6 +67,13 @@ async function main() {
   if (!existsSync(videoPath)) {
     console.log(`No existe ${path.relative(process.cwd(), videoPath)}. Corré \`npm run render:reel ${id}\` primero.`);
     return;
+  }
+  const edl = await readDataSafe<Edl | null>(`edl/${id}.json`, null);
+  if (!edl || edl.status !== "approved") {
+    throw new Error("El montaje EDL debe estar aprobado antes de publicar.");
+  }
+  if (!edl.updatedAt || statSync(videoPath).mtimeMs < new Date(edl.updatedAt).getTime()) {
+    throw new Error("El video renderizado es anterior al montaje aprobado. Volvé a renderizar antes de publicar.");
   }
 
   const publishConfig = loadPublishConfig();

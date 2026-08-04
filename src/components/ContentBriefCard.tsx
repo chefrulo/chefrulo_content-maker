@@ -20,6 +20,7 @@ export function ContentBriefCard({ brief }: { brief: ContentBrief }) {
       href={`/content-briefs/${brief.id}`}
       className="cr-enter block rounded-xl border border-border bg-surface p-4 hover:border-accent/50 transition-colors"
     >
+      <Badge variant="outline" className="mb-3">BRIEF · EDITORIAL</Badge>
       <div className="flex items-start justify-between gap-2 mb-2">
         <Badge variant="outline">{brief.brandPillar}</Badge>
         <Badge variant={statusVariant[brief.status] ?? "secondary"}>

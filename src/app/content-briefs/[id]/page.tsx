@@ -59,6 +59,7 @@ export default function ContentBriefDetailPage({ params }: { params: Promise<{ i
 
       <header>
         <div className="flex flex-wrap gap-1.5">
+          <Badge variant="outline">BRIEF · EDITORIAL</Badge>
           <Badge variant="outline">{brief.brandPillar}</Badge>
           <Badge variant="secondary">{brief.editorialTerritory}</Badge>
         </div>
@@ -117,8 +118,9 @@ export default function ContentBriefDetailPage({ params }: { params: Promise<{ i
       </section>
 
       {brief.status === "approved" && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Generar guion</h2>
+        <section className="rounded-xl border border-accent/20 bg-accent/[0.03] p-5">
+          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-accent">REEL · VIDEO</p>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Generar guion de reel</h2>
           {brief.reelScriptId ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Ya se generó un guion a partir de este brief.</p>
@@ -126,13 +128,13 @@ export default function ContentBriefDetailPage({ params }: { params: Promise<{ i
                 href={`/scripts/${brief.reelScriptId}`}
                 className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline"
               >
-                Ver guion generado
+                Ver reel y montaje de video
               </Link>
             </div>
           ) : (
             <PipelineRunner
               url={`/api/content-briefs/${id}/generate-script`}
-              triggerLabel="Generar guion"
+              triggerLabel="Generar guion de reel"
               runningLabel="Generando…"
               initialSteps={["Script"]}
               onSuccess={load}
@@ -142,8 +144,9 @@ export default function ContentBriefDetailPage({ params }: { params: Promise<{ i
       )}
 
       {brief.status === "approved" && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Carruseles</h2>
+        <section className="rounded-xl border border-border bg-muted/30 p-5">
+          <p className="mb-1 text-xs font-bold tracking-[0.18em] text-foreground">CARRUSEL · IMÁGENES</p>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Diseñar carrusel</h2>
           {carousels.length > 0 && <div className="mb-3 space-y-2">{carousels.map((carousel) => (
             <Link key={carousel.id} href={`/carousels/${carousel.id}`} className="block rounded-lg border border-border bg-surface p-3 text-sm hover:border-muted-foreground/40">
               {carousel.name} · {carousel.slides.length} slides · {carousel.status}

@@ -32,6 +32,9 @@ async function main() {
     console.log(`No hay EDL para ${id}. Corré \`npm run generate:edl ${id}\` primero.`);
     return;
   }
+  if (edl.status !== "approved") {
+    throw new Error(`El montaje de ${id} todavía no está aprobado. Revisalo en la aplicación antes de renderizar.`);
+  }
 
   const voiceover = await readDataSafe<VoiceoverTimeline | null>(
     `voiceovers/${id}/timeline.json`,
@@ -40,6 +43,9 @@ async function main() {
   if (!voiceover) {
     console.log(`No hay voiceover para ${id}. Corré \`npm run generate:voiceover ${id}\` primero.`);
     return;
+  }
+  if (edl.voiceoverGeneratedAt !== voiceover.generatedAt) {
+    throw new Error("El montaje fue creado con otra versión de la voz. Regenerá y revisá el EDL antes de renderizar.");
   }
 
   const brand = await getBrand();
@@ -75,6 +81,7 @@ async function main() {
       // edlBeat.clipPath is "footage/{id}/file.mp4" -> matches the public/footage symlink
       clipPath: edlBeat?.clipPath,
       trimStartSeconds: edlBeat?.trimStartSeconds,
+      trimEndSeconds: edlBeat?.trimEndSeconds,
       onScreenText: brandBeat.onScreenText,
       // vo.audioPath is "data/voiceovers/{id}/beat-N.mp3" -> strip "data/" to match public/voiceovers
       audioPath: vo.audioPath ? path.posix.join(...vo.audioPath.split(path.sep).slice(1)) : undefined,

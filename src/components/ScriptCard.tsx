@@ -22,6 +22,7 @@ export function ScriptCard({ script }: { script: ReelScript }) {
       href={`/scripts/${script.id}`}
       className="cr-enter block rounded-xl border border-border bg-surface p-4 hover:border-accent/50 transition-colors"
     >
+      <Badge variant="accent" className="mb-3">REEL · VIDEO</Badge>
       <div className="flex items-start justify-between gap-2 mb-2">
         <Badge variant="outline">{script.brandPillar}</Badge>
         <Badge variant={statusVariant[script.status] ?? "secondary"}>

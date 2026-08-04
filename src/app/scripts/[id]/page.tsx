@@ -2,18 +2,24 @@
 
 import { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Mic, Type, Clapperboard } from "lucide-react";
+import { ArrowLeft, Mic, Type, Clapperboard, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PipelineRunner } from "@/components/PipelineRunner";
 import { BeatRecorder } from "@/components/BeatRecorder";
+import { EdlEditor } from "@/components/EdlEditor";
 import type { ReelScript } from "@/types/reel-script";
+import type { Edl } from "@/types/edl";
+import type { VoiceoverTimeline } from "@/types/voiceover";
 
 export default function ScriptDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [brief, setBrief] = useState<ReelScript | null>(null);
   const [hasVideo, setHasVideo] = useState(false);
+  const [videoIsCurrent, setVideoIsCurrent] = useState(false);
+  const [edl, setEdl] = useState<Edl | null>(null);
+  const [voiceover, setVoiceover] = useState<VoiceoverTimeline | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const [recordedBeats, setRecordedBeats] = useState<number[]>([]);
 
@@ -23,6 +29,9 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
     const data = await res.json();
     setBrief(data.brief);
     setHasVideo(data.hasVideo);
+    setVideoIsCurrent(data.videoIsCurrent ?? false);
+    setEdl(data.production?.edl ?? null);
+    setVoiceover(data.production?.voiceover ?? null);
     setRecordedBeats(data.recordedBeats ?? []);
   }, [id]);
 
@@ -52,6 +61,7 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
 
       <header>
         <div className="flex flex-wrap gap-1.5">
+          <Badge variant="accent"><Film className="mr-1 h-3 w-3" /> REEL · VIDEO</Badge>
           <Badge variant="outline">{brief.brandPillar}</Badge>
           <Badge variant="secondary">{brief.editorialTerritory}</Badge>
         </div>
@@ -137,16 +147,44 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
         </ol>
       </section>
 
-      {brief.status === "approved" && !hasVideo && (
+      {brief.status === "approved" && (
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            Producir video
+            1. Preparar voz y propuesta de montaje
           </h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Mide la voz real, analiza tres fotogramas de cada clip en <code>footage/{id}/</code> y propone una asignación. No renderiza todavía.
+          </p>
           <PipelineRunner
-            url={`/api/scripts/${id}/produce`}
-            triggerLabel="Generar voiceover, EDL y renderizar"
-            runningLabel="Produciendo…"
-            initialSteps={["Voiceover", "EDL", "Render"]}
+            url={`/api/scripts/${id}/prepare`}
+            triggerLabel={edl ? "Regenerar voz y propuesta de montaje" : "Preparar voz y montaje"}
+            runningLabel="Preparando…"
+            initialSteps={["Voz y tiempos reales", "Selección de footage"]}
+            onSuccess={load}
+          />
+        </section>
+      )}
+
+      {brief.status === "approved" && edl && voiceover && (
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            2. Revisar clips y cortes
+          </h2>
+          <EdlEditor key={edl.updatedAt} script={brief} edl={edl} onSaved={load} />
+        </section>
+      )}
+
+      {brief.status === "approved" && edl?.status === "approved" && (
+        <section>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            3. Renderizar reel
+          </h2>
+          <p className="mb-3 text-sm text-muted-foreground">El render usa exactamente los clips, cortes y tiempos aprobados arriba.</p>
+          <PipelineRunner
+            url={`/api/scripts/${id}/render`}
+            triggerLabel={hasVideo ? "Volver a renderizar reel" : "Renderizar reel final"}
+            runningLabel="Renderizando…"
+            initialSteps={["Render final"]}
             onSuccess={load}
           />
         </section>
@@ -155,8 +193,9 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
       {hasVideo && (
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            Video
+            Reel renderizado
           </h2>
+          {!videoIsCurrent && <p className="mb-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">Este video es anterior al montaje actual. Volvé a renderizar antes de publicarlo.</p>}
           <video
             key={id}
             controls
@@ -166,7 +205,7 @@ export default function ScriptDetailPage({ params }: { params: Promise<{ id: str
         </section>
       )}
 
-      {brief.status === "approved" && hasVideo && (
+      {brief.status === "approved" && hasVideo && videoIsCurrent && edl?.status === "approved" && (
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             Publicar
