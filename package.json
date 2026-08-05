@@ -12,6 +12,8 @@
     "setup": "node --import tsx src/scripts/setup.ts",
     "doctor": "node --import tsx src/scripts/doctor.ts",
     "migrate:sqlite": "node --import tsx src/scripts/migrate-operational-data.ts",
+    "machine:pack": "bash scripts/pack-migration.sh",
+    "machine:unpack": "bash scripts/unpack-migration.sh",
     "claude": "bash scripts/run-claude.sh",
     "test:ig-insights": "bash scripts/run-claude.sh -p \"Use the Instagram MCP tools to fetch my profile info (get_profile_info) and account insights for the last 7 days (get_account_insights, metrics: reach, impressions if available, else whatever the tool supports). Print the raw tool results, then a 2-sentence plain-English summary.\" --allowedTools mcp__instagram__get_profile_info --allowedTools mcp__instagram__get_account_insights",
     "scrape:inspiration": "node --import tsx src/scripts/scrape-inspiration.ts",

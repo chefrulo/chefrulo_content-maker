@@ -22,6 +22,9 @@ npm run doctor
 
 Fill in `.env.local` (copied from `.env.example`) as each step below needs it.
 
+Moving this whole setup to a new laptop? See
+[`docs/guides/moving-to-another-machine.md`](docs/guides/moving-to-another-machine.md).
+
 ## Brand Brain (required)
 
 [`chef-rulo-brand-brain`](https://github.com/chefrulo/chef-rulo-brand-brain) (separate local repo, e.g. `/home/eduardo/dev/chef-rulo-brand-brain`) is the canonical source of truth for everything the Editorial Content Engine writes: positioning, editorial manifesto, British-English writing style, non-negotiable guardrails (no claims of cultural superiority, no "authentic" as an unsupported verdict, no stereotypes, no generalising a single household as all of Argentina), canonical articles, and the idea library. Point `BRAND_BRAIN_PATH` in `.env.local` at a local clone of that repo — `npm run generate:ideas` and `npm run generate:briefs` both require it and refuse to run without it; there is no degraded/no-guardrails mode any more. `npm run doctor` checks that it's set and that the repo looks right.
